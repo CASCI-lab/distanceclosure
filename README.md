@@ -40,7 +40,7 @@ where edges with a `1` are metric, `2` are semi-metric and `0` are non-existent.
 Notes:
 -----
 
-The current version of this code cannot handle extra large networks since it used matrix computation.
+The current version of this code cannot handle extra large networks since it uses matrix computation.
 
 Pull requests are welcome. Here are some TODOs:
 - Transitive closure using the dijkstra algorithm
