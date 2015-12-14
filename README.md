@@ -9,7 +9,7 @@ It calculates network pairwise distance using the jaccard similarity/distance me
 
 The mathematical description of the methods can be seen in:
 ```
-T. Simas and L.M. Rocha [2015].\"Distance Closures on Complex Networks\". Network Science, 3(2):227-268. doi:10.1017/nws.2015.11
+T. Simas and L.M. Rocha [2015]."Distance Closures on Complex Networks". Network Science, 3(2):227-268. doi:10.1017/nws.2015.11
 ```
 
 Usage:
@@ -32,7 +32,9 @@ Bu = backbone(D, Cu)
 ```
 
 The backbone edges on `Bm` and `Bu` can be accessed using 
+
 ```python
+import bumpy as np
 rows, cols = np.where(Bm==1)
 ```
 where edges with a `1` are metric, `2` are semi-metric and `0` are non-existent. The diagonal is `-1`.
@@ -40,11 +42,14 @@ where edges with a `1` are metric, `2` are semi-metric and `0` are non-existent.
 Notes:
 -----
 
-The current version of this code cannot handle extra large networks since it uses matrix computation.
+The current version of this code cannot handle extra large networks since it uses dense matrix computation.
 
-Pull requests are welcome. Here are some TODOs:
-- Transitive closure using the dijkstra algorithm
-- Porting to Cython
+Pull requests are welcome.
+
+Here are some TODOs:
+
+- Transitive closure (with custom distance metric) using the dijkstra algorithm;
+- Porting to Cython.
 
 Tests:
 ------
