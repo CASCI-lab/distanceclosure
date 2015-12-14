@@ -16,7 +16,7 @@ Usage:
 ------
 
 ```python
-from distanceclosure import pairwise_proximity, prox2dist, transitive_closure, backbone
+from distanceclosure import pairwise_proximity, prox2dist, dist2prox, transitive_closure, backbone
 
 # Calculate Proximity and convert to Distance
 P = pairwise_proximity(X, metric='jaccard')
@@ -34,7 +34,7 @@ Bu = backbone(D, Cu)
 The backbone edges on `Bm` and `Bu` can be accessed using 
 
 ```python
-import bumpy as np
+import numpy as np
 rows, cols = np.where(Bm==1)
 ```
 where edges with a `1` are metric, `2` are semi-metric and `0` are non-existent. The diagonal is `-1`.
