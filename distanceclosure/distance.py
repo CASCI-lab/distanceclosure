@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Compute the Jaccard coefficient (distance/similarity) over a matrix
+Pairwise distance
+====================
+
+Computes the Jaccard proximity over a matrix
 
 """
 #    Copyright (C) 2015 by
@@ -24,29 +27,63 @@ __metrics__ = [
 
 def pairwise_proximity(M, metric='jaccard', *args, **kwargs):
 	"""
-	Calculates pairwise proximity coefficient between rows of a matrix
-
-	Parameters
-	----------
-	M : matrix, numpy or scipy
-
-    metric : string
-    	type of jaccard proximity to use.
-    	- Binary comparison = 'jaccard','jb','jaccard_bitwise' =
-    	- Set comparison ='jaccard_set','js'
-    	- Weighted comparison = 'weighted_jaccard','wj'
-
-    Note: Jaccard distance = ( 1 - Coefficient )
-
-	Returns
-	--------
-	M : matrix
-		The matrix of proximities
+	Calculates pairwise proximity coefficient between rows of a matrix.
+	Three types of Jaccard proximity is available depending on your data.
 	
-	Usage
-	------
-	P = pairwise_proximity(M, metric='jaccard')
+	Args:
+		M (matrix) : adjacency matrix
+		metric (str) : Jaccard proximity metric
+			Allowed values:
+				- Binary item-wise comparison: ``jaccard``, ``jb``, ``jaccard_bitwise``
+				- Set comparison: ``jaccard_set``, ``js``
+				- Weighted item-wise comparison: ``weighted_jaccard``, ``wj``
+		min_support (Optional[int]) : the minimum support passed to 'weighted_jaccard'
 
+	Returns:
+		M (matrix) : The matrix of proximities
+	
+	Examples:
+
+		There are three ways to compute the proximity, here are some examples:
+
+		>>> # Binary Matrix
+		>>> B = np.array([
+			[1,1,1,1],
+			[1,1,1,0],
+			[1,1,0,0],
+			[1,0,0,0],
+		])
+		>>> # Weighted Matrix
+		>>> W = np.array([
+			[4,3,2,1],
+			[3,2,1,0],
+			[2,1,0,0],
+			[1,0,0,0],
+		])
+		
+		Binary Jaccard: the default and most commonly used version.
+
+		>>> pairwise_proximity(B, metric='jaccard')
+		[[ 1. , 0.75, 0.5 , 0.25],
+		[ 0.75, 1.  , 0.66, 0.33],
+		[ 0.5 , 0.66, 1.  , 0.5 ],
+		[ 0.25, 0.33, 0.5 , 1.  ]]
+
+		Set Jaccard: it treats the values in each vector as a set of objects, therefore their order is not taken into account.
+		
+		>>> pairwise_proximity(B, metric='set')
+		[[ 1., 0.6 , 0.4 , 0.2 ],
+		[ 0.6, 1.  , 0.75, 0.5 ],
+		[ 0.4, 0.75, 1.  , 0.67],
+		[ 0.2, 0.5 , 0.67, 1.  ]]
+
+		Weighted Jaccard: the version for weighted graphs.
+
+		>>> pairwise_proximity(W, metric='weighted')
+		[ 1.,   0.6,  0.3,  0.1],
+		[ 0.6,  1.,   0.,   0. ],
+		[ 0.3,  0.,   1.,   0. ],
+		[ 0.1,  0.,   0.,   1. ],
 	"""
 
 	# Numpy object

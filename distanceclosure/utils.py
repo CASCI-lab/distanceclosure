@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+Utils
+==========================
+
 Utility functions for the Distance Closure package
 """
 #    Copyright (C) 2015 by
@@ -21,22 +24,27 @@ __all__ = [
 			'prox2dist',
 		]
 
-def prox2dist(O):
+def prox2dist(P):
 	"""
-	Transforms a matrix of non-negative [0,1] proximities x to
-	distance weights in the [0,inf] interval:
-		      1
-		s = ----- - 1
-		      x
-	Parameters
-	----------
-	x : array_like
-		an array of non-negative distances.
+	Transforms a matrix of non-negative ``[0,1]`` proximities P to distance weights in the ``[0,inf]`` interval:
+	
+	.. math::
+
+		d = \\frac{1}{p} - 1
+	
+	Args:
+		P (matrix): Proximity matrix
+	
+	Returns:
+		D (matrix): Distance matrix
+
+	See Also:
+		:attr:`dist2prox`
 	"""
-	if (type(O).__module__ == 'numpy'):
-		return _prox2dist_numpy(O)
-	elif (type(O).__module__.split('.')[1] == 'sparse'):
-		return _prox2dist_sparse(O)
+	if (type(P).__module__ == 'numpy'):
+		return _prox2dist_numpy(P)
+	elif (type(P).__module__.split('.')[1] == 'sparse'):
+		return _prox2dist_sparse(P)
 	else:
 		raise ("Format not accepted: try numpy or scipy.sparse formats")
 
@@ -56,22 +64,30 @@ def _prox2dist_numpy(A):
 	f = np.vectorize(_prox2dist)
 	return f(A)
 
-def dist2prox(O):
+def dist2prox(D):
 	"""
-	Transforms a matrix of non-negative integer distances x to
-	proximity/similarity weights in the [0,1] interval:
-		      1
-		s = -----
-		    x + 1
-	Parameters
-	----------
-	x : array_like
-		an array of non-negative distances.
+	Transforms a matrix of non-negative integer distances ``D`` to proximity/similarity weights in the ``[0,1]`` interval:
+	
+	.. math::
+	
+		p = \\frac{1}{(d+1)}
+
+	It accepts both dense and sparse matrices.
+
+	Args:
+		D (matrix): Distance matrix
+
+	Returns:
+		P (matrix): Proximity matrix
+
+	See Also:
+		:attr:`prox2dist`
+
 	"""
-	if (type(O).__module__ == 'numpy'):
-		return _dist2prox_numpy(O)
-	elif (type(O).__module__.split('.')[1] == 'sparse'):
-		return _dist2prox_numpy(O)
+	if (type(D).__module__ == 'numpy'):
+		return _dist2prox_numpy(D)
+	elif (type(D).__module__.split('.')[1] == 'sparse'):
+		return _dist2prox_numpy(D)
 	else:
 		raise ("Format not accepted: try numpy or scipy.sparse formats")
 
