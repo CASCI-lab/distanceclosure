@@ -1,0 +1,303 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>utils &mdash; Distance Closure 0.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Distance Closure 0.1 documentation" href="../index.html"/>
+        <link rel="up" title="Module code" href="index.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Distance Closure
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../distance.html">Pairwise distance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../closure.html">Transitive Closure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../backbone.html">Backbone Extraction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../utils.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">Distance Closure</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="index.html">Module code</a> &raquo;</li>
+      
+    <li>utils</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for utils</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utils</span>
+<span class="sd">==========================</span>
+
+<span class="sd">Utility functions for the Distance Closure package</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c">#    Copyright (C) 2015 by</span>
+<span class="c">#    Luis Rocha &lt;rocha@indiana.edu&gt;</span>
+<span class="c">#    Thiago Simas &lt;@.&gt;</span>
+<span class="c">#    Rion Brattig Correia &lt;rionbr@gmail.com&gt;</span>
+<span class="c">#    All rights reserved.</span>
+<span class="c">#    MIT license.</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span><span class="se">\n</span><span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+	<span class="s">&#39;Luis Rocha &lt;rocha@indiana.com&gt;&#39;</span><span class="p">,</span>
+	<span class="s">&#39;Thiago Simas &lt;@.&gt;&#39;</span><span class="p">,</span>
+	<span class="s">&#39;Rion Brattig Correia &lt;rionbr@gmail.com&gt;&#39;</span><span class="p">,</span>
+	<span class="p">])</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+			<span class="s">&#39;dist2prox&#39;</span><span class="p">,</span>
+			<span class="s">&#39;prox2dist&#39;</span><span class="p">,</span>
+		<span class="p">]</span>
+
+<div class="viewcode-block" id="prox2dist"><a class="viewcode-back" href="../utils.html#utils.prox2dist">[docs]</a><span class="k">def</span> <span class="nf">prox2dist</span><span class="p">(</span><span class="n">P</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Transforms a matrix of non-negative ``[0,1]`` proximities P to distance weights in the ``[0,inf]`` interval:</span>
+<span class="sd">	</span>
+<span class="sd">	.. math::</span>
+
+<span class="sd">		d = \\frac{1}{p} - 1</span>
+<span class="sd">	</span>
+<span class="sd">	Args:</span>
+<span class="sd">		P (matrix): Proximity matrix</span>
+<span class="sd">	</span>
+<span class="sd">	Returns:</span>
+<span class="sd">		D (matrix): Distance matrix</span>
+
+<span class="sd">	See Also:</span>
+<span class="sd">		:attr:`dist2prox`</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="k">if</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">P</span><span class="p">)</span><span class="o">.</span><span class="n">__module__</span> <span class="o">==</span> <span class="s">&#39;numpy&#39;</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">_prox2dist_numpy</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
+	<span class="k">elif</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">P</span><span class="p">)</span><span class="o">.</span><span class="n">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;sparse&#39;</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">_prox2dist_sparse</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="p">(</span><span class="s">&quot;Format not accepted: try numpy or scipy.sparse formats&quot;</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_prox2dist_sparse</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
+	<span class="n">A</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">prox2dist_numpy</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">A</span>
+
+<span class="k">def</span> <span class="nf">_prox2dist_numpy</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
+	
+	<span class="k">def</span> <span class="nf">_prox2dist</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+			<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">return</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
+
+	<span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">_prox2dist</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+
+<div class="viewcode-block" id="dist2prox"><a class="viewcode-back" href="../utils.html#utils.dist2prox">[docs]</a><span class="k">def</span> <span class="nf">dist2prox</span><span class="p">(</span><span class="n">D</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Transforms a matrix of non-negative integer distances ``D`` to proximity/similarity weights in the ``[0,1]`` interval:</span>
+<span class="sd">	</span>
+<span class="sd">	.. math::</span>
+<span class="sd">	</span>
+<span class="sd">		p = \\frac{1}{(d+1)}</span>
+
+<span class="sd">	It accepts both dense and sparse matrices.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		D (matrix): Distance matrix</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		P (matrix): Proximity matrix</span>
+
+<span class="sd">	See Also:</span>
+<span class="sd">		:attr:`prox2dist`</span>
+
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="k">if</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">D</span><span class="p">)</span><span class="o">.</span><span class="n">__module__</span> <span class="o">==</span> <span class="s">&#39;numpy&#39;</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">_dist2prox_numpy</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
+	<span class="k">elif</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">D</span><span class="p">)</span><span class="o">.</span><span class="n">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;sparse&#39;</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">_dist2prox_numpy</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="p">(</span><span class="s">&quot;Format not accepted: try numpy or scipy.sparse formats&quot;</span><span class="p">)</span></div>
+
+<span class="k">def</span> <span class="nf">_dist2prox_sparse</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
+	<span class="n">A</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">dist2prox_numpy</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">A</span>
+
+<span class="k">def</span> <span class="nf">_dist2prox_numpy</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
+
+	<span class="k">def</span> <span class="nf">_dist2prox</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">:</span>
+			<span class="k">return</span> <span class="mi">0</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span>
+
+	<span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">_dist2prox</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Luis Rocha and Thiago Simas and Rion Brattig Correia.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
