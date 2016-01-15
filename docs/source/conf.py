@@ -42,8 +42,13 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'sphinxcontrib.googleanalytics',
     'sphinxtogithub',
+
 ]
+
+# Google Analytcis
+googleanalytics_id = 'UA-71404006-1'
 
 # Napoleon settings
 napoleon_google_docstring = True
