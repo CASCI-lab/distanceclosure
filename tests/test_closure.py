@@ -1,7 +1,7 @@
 from nose.tools import *
 from distanceclosure.utils import prox2dist
 from distanceclosure.closure import transitive_closure
-from distanceclosure.closure import backbone
+from distanceclosure.backbone import backbone
 import numpy as np
 #
 # Test
