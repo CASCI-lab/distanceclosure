@@ -25,4 +25,4 @@ You can also source the code directly from the github [project page](https://git
 Docs:
 ------
 
-The full specification can be found at: [rionbr.github.io/distanceclosure](rionbr.github.io/distanceclosure)
+The full specification can be found at: [rionbr.github.io/distanceclosure](https://rionbr.github.io/distanceclosure)
