@@ -9,10 +9,15 @@ The distance closure can be calculated using different metrics. Currently suppor
 
 The mathematical description of the methods can be seen in:
 
-	"T. Simas and L.M. Rocha [2015]."`Distance Closures on Complex Networks`__". Network Science, 3(2):227-268. doi:10.1017/nws.2015.11"
+	"T. Simas and L.M. Rocha [2015]."`Distance Closures on Complex Networks`__". *Network Science*, **3** (2):227-268. doi:10.1017/nws.2015.11"
 
 	__ http://www.informatics.indiana.edu/rocha/publications/NWS14.php
 
+Other papers which have used this method:
+
+	"R.B. Correia, L. Li, L.M. Rocha [2016]. "`Monitoring potential drug interactions and reactions via network analysis of Instagram user timeliness`__". *Pacific Symposium on Biocomputing*. **21**:492-503."
+	
+	__ http://www.informatics.indiana.edu/rocha/publications/PSB2016.php
 
 Installation:
 ---------------
@@ -82,6 +87,8 @@ Here are some TODOs:
 
 * Transitive closure (with custom distance metric) using the dijkstra algorithm;
 * Porting to Cython.
+
+Pull requests are welcome. Please get in contact with me beforehand ``rionbr a@t gmail d.t com``.
 
 Tests:
 --------
