@@ -17,7 +17,7 @@ Installation:
 This package is available on Pypi. Just run the following command on terminal to install.
 
 ```
-	$pip install distance_closure
+	$pip install distanceclosure
 ```
 
 You can also source the code directly from the github [project page](https://github.com/rionbr/distanceclosure).
