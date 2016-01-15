@@ -26,7 +26,7 @@ This package is available on Pypi. Just run the following command on terminal to
 
 .. code-block:: bash
 
-	$pip install distance_closure
+	$pip install distanceclosure
 
 You can also source the code directly from the github `project page`__.
 
