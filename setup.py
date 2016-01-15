@@ -1,4 +1,5 @@
 from setuptools import setup
+from distanceclosure import __version__
 
 def readme():
 	with open('README.md') as f:
@@ -6,7 +7,7 @@ def readme():
 
 setup(
 	name='distanceclosure',
-	version='0.2',
+	version=__version__,
 	description="Distance Closure on Complex Networks",
 	long_description="Methods to calculate distance closure on complex networks as defined in T. Simas and L.M. Rocha [2015].\"Distance Closures on Complex Networks\". Network Science, 3(2):227-268. doi:10.1017/nws.2015.11",
 	classifiers=[
