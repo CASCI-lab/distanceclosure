@@ -85,10 +85,6 @@ def _transitive_closure_numpy(A, kind='metric', verbose=False):
 	"""
 	C = A.copy()
 	n,m = A.shape
-
-	# Check number of zeros in the matrix
-	if len(A[A==0]) != n:
-		raise ValueError("Only the diagonal has to be zero. All other zeros need to be 'numpy.inf'")
 	
 	# Check if diagonal is all zero
 	if sum( np.diagonal(A) ) > 0:
