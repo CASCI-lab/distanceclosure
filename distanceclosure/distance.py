@@ -64,26 +64,26 @@ def pairwise_proximity(M, metric='jaccard', *args, **kwargs):
 		Binary Jaccard: the default and most commonly used version.
 
 		>>> pairwise_proximity(B, metric='jaccard')
-		[[ 1. , 0.75, 0.5 , 0.25],
-		[ 0.75, 1.  , 0.66, 0.33],
-		[ 0.5 , 0.66, 1.  , 0.5 ],
-		[ 0.25, 0.33, 0.5 , 1.  ]]
+			[[ 1. , 0.75, 0.5 , 0.25],
+			[ 0.75, 1.  , 0.66, 0.33],
+			[ 0.5 , 0.66, 1.  , 0.5 ],
+			[ 0.25, 0.33, 0.5 , 1.  ]]
 
 		Set Jaccard: it treats the values in each vector as a set of objects, therefore their order is not taken into account.
 		
 		>>> pairwise_proximity(B, metric='set')
-		[[ 1., 0.6 , 0.4 , 0.2 ],
-		[ 0.6, 1.  , 0.75, 0.5 ],
-		[ 0.4, 0.75, 1.  , 0.67],
-		[ 0.2, 0.5 , 0.67, 1.  ]]
+			[[ 1., 0.6 , 0.4 , 0.2 ],
+			[ 0.6, 1.  , 0.75, 0.5 ],
+			[ 0.4, 0.75, 1.  , 0.67],
+			[ 0.2, 0.5 , 0.67, 1.  ]]
 
 		Weighted Jaccard: the version for weighted graphs.
 
 		>>> pairwise_proximity(W, metric='weighted')
-		[ 1.,   0.6,  0.3,  0.1],
-		[ 0.6,  1.,   0.,   0. ],
-		[ 0.3,  0.,   1.,   0. ],
-		[ 0.1,  0.,   0.,   1. ],
+			[ 1.,   0.6,  0.3,  0.1],
+			[ 0.6,  1.,   0.,   0. ],
+			[ 0.3,  0.,   1.,   0. ],
+			[ 0.1,  0.,   0.,   1. ],
 	"""
 
 	# Numpy object
