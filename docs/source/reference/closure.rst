@@ -1,0 +1,3 @@
+
+.. automodule:: distanceclosure.closure
+	:members:
