@@ -12,4 +12,5 @@ API Reference
    closure
    backbone
    dijkstra
+   fuzzylogic
    utils

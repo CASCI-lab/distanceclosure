@@ -1,7 +1,7 @@
 Development 
 ============
 
-This package is still in alpha development mode. Please note that it might contain errors.
+This package is still in beta development. Please note that it might contain errors.
 
 Notes
 ------
@@ -11,11 +11,12 @@ Here are some TODOs:
 * Parallelize the Dijkstra algorithm.
 * Port the Dijkstra algorithm to cython, running in parallel;
 
-Pull requests are welcome. Please get in contact with me beforehand ``rionbr a@t gmail d.t com``.
+Pull requests are welcome. Please get in contact with me beforehand ``rionbr(at)gmail(dot)com``.
 
 Changelog
 -----------
-
+v0.3.1
+	- Fuzzy Logic for Graphs added
 v0.3.0
 	- Dijkstra APSP algorithm
 	- Support for sparse matrices
