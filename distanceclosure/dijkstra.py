@@ -6,9 +6,13 @@ Dijkstra algorithm
 Implementation of the Dijkstra algorithm using Heap Queue to compute transitive closure.
 This algorithm uses a modification to the path length to compute both `metric` and `ultrametric` closure.
 
+Warning:
+	There is no need for this class to be called directly, since it will be called from :meth:`~distanceclosure.closure`.
+
 Note:
 	A very good tutorial of how the Djikstra algorithm works can be seen `here
 	<https://www.youtube.com/watch?v=U9Raj6rAqqs>`_.
+
 """
 #    Copyright (C) 2015 by
 #    Luis Rocha <rocha@indiana.edu>
@@ -33,9 +37,6 @@ __operators__ = {
 class Dijkstra(object):
 	"""
 	This is the class that handles the computation of the Distance Closure using a generalization of the Djikstra Algorithm.
-
-	Warning:
-		There is no need for this class to be called directly, since it will be called from :meth:`~distanceclosure.closure`.
 	"""
 	def __init__(self, verbose=False):
 		self.N = set() 	# nodes
