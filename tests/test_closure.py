@@ -43,25 +43,25 @@ Bm_true = np.array([
 #
 @raises(ValueError)
 def test_dense_transitive_closure_faults_nonzerodiagonal():
-	""" Test Dense for non-zero diagonal """
+	""" Test Closure: Dense for non-zero diagonal """
 	Dtmp = D.copy()
 	Dtmp[0][0] = 1
 	transitive_closure(Dtmp, kind='metric', verbose=True)
 
 def test_dense_transitive_closure_metric():
-	""" Test Dense Transitive Closure (Metric) """
+	""" Test Closure: Dense Transitive Closure (Metric) """
 	Cm = transitive_closure(D, kind='metric', algorithm='dense', verbose=True)
 	assert np.isclose(Cm , Cm_true).all()
 	
 
 def test_dense_transitive_closure_ultrametric():
-	""" Test Dense Transitive Closure (Ultrametric) """
+	""" Test Closure: Dense Transitive Closure (Ultrametric) """
 	Cu = transitive_closure(D, kind='ultrametric', algorithm='dense')
 	assert np.isclose(Cu, Cu_true).all()
 
 
 def test_dense_backbone():
-	""" Test Dense Backbone return """
+	""" Test Closure: Dense Backbone return """
 	Cm = transitive_closure(D, kind='metric', algorithm='dense')
 	Bm = backbone(D, Cm)
 	assert np.isclose(Bm, Bm_true).all()
@@ -70,19 +70,19 @@ def test_dense_backbone():
 # Dijkstra
 #
 def test_dijkstra_vs_dense_transitive_closure_ultrametric():
-	""" Test Dijkstra vs Dense metric comparison """
+	""" Test Closure: Dijkstra vs Dense metric comparison """
 	C_Dense_um = transitive_closure(D, kind='metric', algorithm='dense')
 	C_Djisktra_um = transitive_closure(D, kind='metric', algorithm='dijkstra')	
 	assert (C_Dense_um == dict2matrix(C_Djisktra_um)).all()
 
 def test_dijkstra_vs_dense_transitive_closure_ultrametric():
-	""" Test Dijkstra vs Dense ultra metric comparison """
+	""" Test Closure: Dijkstra vs Dense ultra metric comparison """
 	C_Dense_um = transitive_closure(D, kind='ultrametric', algorithm='dense')
 	C_Djisktra_um = transitive_closure(D_sparse, kind='ultrametric', algorithm='dijkstra')	
 	assert (C_Dense_um == C_Djisktra_um.A).all()
 
 def test_dijkstra_vs_dense_backbone():
-	""" Test Dijkstra vs Dense backbone return """ 
+	""" Test Closure: Dijkstra vs Dense backbone return """ 
 	C_Dense_m = transitive_closure(D, kind='metric', algorithm='dense')
 	B_Dense_m = backbone(D, C_Dense_m)
 

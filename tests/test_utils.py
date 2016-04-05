@@ -21,33 +21,33 @@ D = D_true = np.array([
 # Test Distance Proximity Conversion
 #
 def test_prox2dist():
-	print '--- Test Prox2Dist ---'
+	""" Test Utils: Prox2Dist """
 	assert np.isclose(dist2prox(D), P_true).all()
 
 def test_dist2prox():
-	print '--- Test Dist2Prox ---'
+	""" Test Utils: Dist2Prox """
 	assert np.isclose(prox2dist(P), D_true).all()
 
 def test_dist2prox_prox2dist():
-	print '--- Test Prox2Dist & Dist2Prox ---'
+	""" Test Utils: Prox2Dist & Dist2Prox """
 	assert np.isclose(dist2prox(prox2dist(P)) , P).all()
 #
 # Test Data Conversion
 #
 def test_matrix2dict():
-	""" Test matrix 2 dict """
+	""" Test Utils: matrix 2 dict """
 	m = [[0, 1, 3], [1, 0, 2], [3, 2, 0]]
 	d = matrix2dict(m)
 	assert (d == {0: {0: 0, 1: 1, 2:3}, 1: {0: 1, 1: 0, 2:2}, 2: {0: 3, 1:2, 2:0}} )
 
 def test_dict2matrix():
-	""" test dict 2 matrix """
+	""" test Utils: dict 2 matrix """
 	d = {0: {0: 0, 1: 1, 2:3}, 1: {0: 1, 1: 0, 2:2}, 2: {0: 3, 1:2, 2:0}}
 	m = dict2matrix(d)
 	assert (m == np.array([[0, 1, 3], [1, 0, 2], [3, 2, 0]]) ).all()
 
 def test_dict2sparse():
-	""" Test dict 2 sparse """
+	""" Test Utils: dict 2 sparse """
 	d = {0: {0: 0, 1: 1, 2:3}, 1: {0: 1, 1: 0, 2:2}, 2: {0: 3, 1:2, 2:0}}
 	s = dict2sparse(d)
 	t = csr_matrix(np.array([[0, 1, 3], [1, 0, 2], [3, 2, 0]])) 

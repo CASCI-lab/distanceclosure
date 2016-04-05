@@ -17,21 +17,21 @@ W = np.array([
 ])
 
 def test_jaccard_bitwise():
-	""" Test the Jaccard bitwise coef """
+	""" Test Jaccard: bitwise coef """
 	u = np.array([1,1,1,1])
 	v = np.array([1,1,1,0])
 	d = _jaccard_coef_bitwise(u,v)
 	assert (d == 0.75)
 	
 def test_jaccard_set():
-	""" Test the Jaccard set coef """
+	""" Test Jaccard: set coef """
 	u = np.array([4,3,2,1])
 	v = np.array([3,2,1,0])
 	d = _jaccard_coef_set(u,v)
 	assert (d == 0.6)
 
 def test_jaccard_weighted(min_support=1):
-	""" Test the Jaccard weighted coef """
+	""" Test Jaccard: weighted coef """
 	u = np.array([4,3,2,1])
 	v = np.array([3,2,1,0])
 	d = _jaccard_coef_weighted_numpy(u,v,1)
@@ -39,7 +39,7 @@ def test_jaccard_weighted(min_support=1):
 	assert (d == 0.6)
 
 def test_pairwise_distance_numpy_bitwise():
-	""" Test pairwise distance using the Numpy (dense matrix) implementation for jaccard bitwise coef """
+	""" Test pairwise distance: using the Numpy (dense matrix) implementation for jaccard bitwise coef """
 	D = pairwise_proximity(B, metric='jaccard_bitwise')
 	true = np.array([
 		[ 1.,          0.75,        0.5,         0.25      ],
@@ -50,7 +50,7 @@ def test_pairwise_distance_numpy_bitwise():
 	assert np.isclose(D, true).all()
 
 def test_pairwise_distance_numpy_set():
-	""" Test pairwise distance using the Numpy (dense matrix) implementation for jaccard set coef """
+	""" Test pairwise distance: using the Numpy (dense matrix) implementation for jaccard set coef """
 	D = pairwise_proximity(W, metric='jaccard_set')
 	true = np.array([
 		[ 1.,          0.6,         0.4,         0.2,       ],
@@ -61,7 +61,7 @@ def test_pairwise_distance_numpy_set():
 	assert np.isclose(D, true).all()
 
 def test_pairwise_distance_numpy_weighted():
-	""" Test the Jaccard weighted """
+	""" Test pairwise distance: using Numpy (dense matrix) using weighted jaccard """
 	D = pairwise_proximity(W, metric='weighted_jaccard', min_support=10)
 	true = np.array([
 		[ 1.,   0.6,  0.3,  0.1],
@@ -72,7 +72,7 @@ def test_pairwise_distance_numpy_weighted():
 	assert np.isclose(D, true).all()
 
 def test_pairwise_distance_sparse_bitwise():
-	""" Test pairwise distance using the Scipy (sparse matrix) implementation for jaccard bitwise coef """
+	""" Test pairwise distance: using the Scipy (sparse matrix) implementation for jaccard bitwise coef """
 	B_sparse = csr_matrix(B)
 	D = pairwise_proximity(B_sparse, metric='jaccard_bitwise')
 	#print D.todense()
@@ -85,7 +85,7 @@ def test_pairwise_distance_sparse_bitwise():
 	assert np.isclose(D.todense(), true).all()
 
 def test_pairwise_distance_sparse_set():
-	""" Test pairwise distance using the Scipy (sparse matrix) implementation for jaccard set coef """
+	""" Test pairwise distance: using the Scipy (sparse matrix) implementation for jaccard set coef """
 	W_sparse = csr_matrix(W)
 	D = pairwise_proximity(W_sparse, metric='jaccard_set')
 	true = np.array([
@@ -97,7 +97,7 @@ def test_pairwise_distance_sparse_set():
 	assert np.isclose(D.todense(), true).all()
 
 def test_pairwise_distance_sparse_weighted():
-	""" Test pairwise distance using the Scipy (sparse matrix) implementation for jaccard weighted coef """
+	""" Test pairwise distance: using the Scipy (sparse matrix) implementation for jaccard weighted coef """
 	W_sparse = csr_matrix(W)
 	D = pairwise_proximity(W_sparse, metric='jaccard_weighted')
 	print D.todense()

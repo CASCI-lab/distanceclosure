@@ -39,21 +39,21 @@ edgelist_james = {
 
 # Single Source Shortest Paths > from Numpy
 def test_dijkstra_sssp_from_numpy():
-	""" Test dijkstra Single Source Shortest Path (SSSP) from Numpy """
+	""" Test Dijkstra: Single Source Shortest Path (SSSP) from Numpy """
 	dij = Dijkstra(verbose=True)
 	dij.from_numpy_matrix(D)
 	dij.single_source_shortest_paths(source=0, kind='metric')
 
 # Single Source Shortest Paths > from edgelist
 def test_dijkstra_sssp_from_edgelist():
-	""" Test Dijkstra Single Source Shortest Path (SSSP) from Edgelist """
+	""" Test Dijkstra: Single Source Shortest Path (SSSP) from Edgelist """
 	dij = Dijkstra(verbose=True)
 	dij.from_edgelist(edgelist_james)
 	dij.single_source_shortest_paths(source='s', kind='metric')
 
 
 def test_dijkstra_vs_networkx_single_source_all_lenghts_and_paths():
-	""" Test My Dijkstra against Networkx Dijkstra > Single Source """
+	""" Test Dijkstra: Rion's implementation vs Networkx implementation > Single Source """
 	# NX Version
 	G = nx.from_edgelist(edgelist_james) 
 	nx.set_edge_attributes(G, 'weight', edgelist_james)
@@ -70,7 +70,7 @@ def test_dijkstra_vs_networkx_single_source_all_lenghts_and_paths():
 
 
 def test_dijkstra_vs_networkx_apsp():
-	""" Test My Dijkstra against Networkx Dijkstra > All Pairs """
+	""" Test Dijkstra: My implementation vs Networkx implementation > All Pairs """
 	# NX Version
 	G = nx.from_edgelist(edgelist_james) 
 	nx.set_edge_attributes(G, 'weight', edgelist_james)
