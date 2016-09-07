@@ -19,7 +19,7 @@
     </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>build &mdash; Distance Closure 0.2 documentation</title>
+  <title>Development &mdash; Distance Closure 0.3.1 documentation</title>
   
 
   
@@ -41,7 +41,8 @@
   
 
   
-    <link rel="top" title="Distance Closure 0.2 documentation" href="index.html"/> 
+    <link rel="top" title="Distance Closure 0.3.1 documentation" href="index.html"/>
+        <link rel="prev" title="Utils" href="reference/utils.html"/> 
 
   
   <script src="static/js/modernizr.min.js"></script>
@@ -69,7 +70,7 @@
             
             
               <div class="version">
-                0.2
+                0.3.1
               </div>
             
           
@@ -90,11 +91,16 @@
           
             
             
-                <ul>
-<li class="toctree-l1"><a class="reference internal" href="distance.html">Pairwise distance</a></li>
-<li class="toctree-l1"><a class="reference internal" href="closure.html">Transitive Closure</a></li>
-<li class="toctree-l1"><a class="reference internal" href="backbone.html">Backbone Extraction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">API Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#notes">Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#changelog">Changelog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tests">Tests</a></li>
+</ul>
+</li>
 </ul>
 
             
@@ -125,11 +131,11 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>build</li>
+    <li>Development</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="sources/modules.txt" rel="nofollow"> View page source</a>
+            <a href="sources/notes.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -139,11 +145,54 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="build">
-<h1>build<a class="headerlink" href="#build" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
+  <div class="section" id="development">
+<h1>Development<a class="headerlink" href="#development" title="Permalink to this headline">¶</a></h1>
+<p>This package is still in beta development. Please note that it might contain errors.</p>
+<div class="section" id="notes">
+<h2>Notes<a class="headerlink" href="#notes" title="Permalink to this headline">¶</a></h2>
+<p>Here are some TODOs:</p>
 <ul class="simple">
+<li>Parallelize the Dijkstra algorithm.</li>
+<li>Port the Dijkstra algorithm to cython, running in parallel;</li>
 </ul>
+<p>Pull requests are welcome. Please get in contact with me beforehand <code class="docutils literal"><span class="pre">rionbr(at)gmail(dot)com</span></code>.</p>
+</div>
+<div class="section" id="changelog">
+<h2>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>v0.3.1</dt>
+<dd><ul class="first last simple">
+<li>Fuzzy Logic for Graphs added</li>
+</ul>
+</dd>
+<dt>v0.3.0</dt>
+<dd><ul class="first last simple">
+<li>Dijkstra APSP algorithm</li>
+<li>Support for sparse matrices</li>
+<li>Documentation improvement</li>
+</ul>
+</dd>
+<dt>v0.2.1</dt>
+<dd><ul class="first last simple">
+<li>Minor fixes</li>
+</ul>
+</dd>
+<dt>v0.2.0</dt>
+<dd><ul class="first last simple">
+<li>Documentation release</li>
+</ul>
+</dd>
+<dt>v0.1.0</dt>
+<dd><ul class="first last simple">
+<li>Dense matrix APSP</li>
+<li>First release</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="tests">
+<h2>Tests<a class="headerlink" href="#tests" title="Permalink to this headline">¶</a></h2>
+<p>Run <code class="docutils literal"><span class="pre">nosetests</span> <span class="pre">-v</span></code> to perform tests and diagnoses on functions.</p>
 </div>
 </div>
 
@@ -152,12 +201,20 @@
           </div>
           <footer>
   
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="reference/utils.html" class="btn btn-neutral" title="Utils" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Luis Rocha and Thiago Simas and Rion Brattig Correia.
+        &copy; Copyright 2015, Rocha, L. M., Simas, T. &amp; Correia, R. B..
+      Last updated on Sep 07, 2016.
 
     </p>
   </div>
@@ -179,7 +236,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.2',
+            VERSION:'0.3.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

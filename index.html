@@ -19,7 +19,7 @@
     </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Distance Closure on Complex Networks – Backbone &mdash; Distance Closure 0.2 documentation</title>
+  <title>Distance Closure on Complex Networks – Backbone &mdash; Distance Closure 0.3.1 documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   
 
   
-    <link rel="top" title="Distance Closure 0.2 documentation" href="#"/>
-        <link rel="next" title="Pairwise distance" href="distance.html"/> 
+    <link rel="top" title="Distance Closure 0.3.1 documentation" href="#"/>
+        <link rel="next" title="Installation" href="install.html"/> 
 
   
   <script src="static/js/modernizr.min.js"></script>
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.2
+                0.3.1
               </div>
             
           
@@ -92,10 +92,10 @@
             
             
                 <ul>
-<li class="toctree-l1"><a class="reference internal" href="distance.html">Pairwise distance</a></li>
-<li class="toctree-l1"><a class="reference internal" href="closure.html">Transitive Closure</a></li>
-<li class="toctree-l1"><a class="reference internal" href="backbone.html">Backbone Extraction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notes.html">Development</a></li>
 </ul>
 
             
@@ -153,67 +153,37 @@ The distance closure can be calculated using different metrics. Currently suppor
 <blockquote>
 <div>&#8220;R.B. Correia, L. Li, L.M. Rocha [2016]. &#8220;<a class="reference external" href="http://www.informatics.indiana.edu/rocha/publications/PSB2016.php">Monitoring potential drug interactions and reactions via network analysis of Instagram user timeliness</a>&#8221;. <em>Pacific Symposium on Biocomputing</em>. <strong>21</strong>:492-503.&#8221;</div></blockquote>
 </div>
-<div class="section" id="installation">
-<h2>Installation:<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
-<p>This package is available on Pypi. Just run the following command on terminal to install.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$pip</span> install distanceclosure
-</pre></div>
-</div>
-<p>You can also source the code directly from the github <a class="reference external" href="https://github.com/rionbr/distanceclosure">project page</a>.</p>
-</div>
-<div class="section" id="usage">
-<h2>Usage:<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
-<p>If you have, let&#8217;s say, a bipartite adjacency matrix <code class="docutils literal"><span class="pre">X</span></code>.
-You want to calculate pairwise distance between all columns and then extract the metric and ultrametric backbone of this new network, you would do the following.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">distanceclosure.utils</span> <span class="kn">import</span> <span class="n">prox2dist</span><span class="p">,</span> <span class="n">dist2prox</span>
-<span class="kn">from</span> <span class="nn">distanceclosure.closure</span> <span class="kn">import</span> <span class="n">transitive_closure</span>
-<span class="kn">from</span> <span class="nn">distanceclosure.backbone</span> <span class="kn">import</span> <span class="n">backbone</span>
-
-<span class="c"># Calculate Proximity and convert to Distance</span>
-<span class="n">P</span> <span class="o">=</span> <span class="n">pairwise_proximity</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s">&#39;jaccard&#39;</span><span class="p">)</span>
-<span class="n">D</span> <span class="o">=</span> <span class="n">prox2dist</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
-
-<span class="c"># Calculate transitive closure using the metric and ultra-metric measure</span>
-<span class="n">Cm</span> <span class="o">=</span> <span class="n">transitive_closure</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s">&#39;metric&#39;</span><span class="p">)</span>
-<span class="n">Cu</span> <span class="o">=</span> <span class="n">transitive_closure</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s">&#39;ultrametric&#39;</span><span class="p">)</span>
-
-<span class="c"># Retrieve the backbone edges</span>
-<span class="n">Bm</span> <span class="o">=</span> <span class="n">backbone</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">Cm</span><span class="p">)</span>
-<span class="n">Bu</span> <span class="o">=</span> <span class="n">backbone</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">Cu</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The backbone edges on <code class="docutils literal"><span class="pre">Bm</span></code> and <code class="docutils literal"><span class="pre">Bu</span></code> can be accessed using</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">Bm</span><span class="o">==</span><span class="mi">1</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>where edges with a <code class="docutils literal"><span class="pre">1</span></code> are metric, <code class="docutils literal"><span class="pre">2</span></code> are semi-metric and <code class="docutils literal"><span class="pre">0</span></code> are non-existent. The diagonal is <code class="docutils literal"><span class="pre">-1</span></code>.</p>
-</div>
-<div class="section" id="methods">
-<h2>Methods:<a class="headerlink" href="#methods" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="documentation">
+<h2>Documentation:<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="distance.html">Pairwise distance</a></li>
-<li class="toctree-l1"><a class="reference internal" href="closure.html">Transitive Closure</a></li>
-<li class="toctree-l1"><a class="reference internal" href="backbone.html">Backbone Extraction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#download">Download</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#quick-install">Quick Install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#requirements">Requirements</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#backbone-of-knowledge-networks">Backbone of Knowledge Networks</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference/distance.html">Pairwise distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/closure.html">Transitive closure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/backbone.html">Backbone extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/dijkstra.html">Dijkstra algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/fuzzylogic.html">Fuzzy Logic for graphs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference/utils.html">Utils</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="notes.html">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notes.html#notes">Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes.html#changelog">Changelog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notes.html#tests">Tests</a></li>
+</ul>
+</li>
 </ul>
 </div>
-</div>
-<div class="section" id="notes">
-<h2>Notes:<a class="headerlink" href="#notes" title="Permalink to this headline">¶</a></h2>
-<p>The current version of this code cannot handle extra large networks since it uses dense matrix computation.
-Pull requests are welcome.</p>
-<p>Here are some TODOs:</p>
-<ul class="simple">
-<li>Transitive closure (with custom distance metric) using the dijkstra algorithm;</li>
-<li>Porting to Cython.</li>
-</ul>
-<p>Pull requests are welcome. Please get in contact with me beforehand <code class="docutils literal"><span class="pre">rionbr</span> <span class="pre">a&#64;t</span> <span class="pre">gmail</span> <span class="pre">d.t</span> <span class="pre">com</span></code>.</p>
-</div>
-<div class="section" id="tests">
-<h2>Tests:<a class="headerlink" href="#tests" title="Permalink to this headline">¶</a></h2>
-<p>Run <code class="docutils literal"><span class="pre">nosetests</span> <span class="pre">-v</span></code> to perform tests and diagnoses on functions.</p>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
@@ -232,7 +202,7 @@ Pull requests are welcome.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="distance.html" class="btn btn-neutral float-right" title="Pairwise distance" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="install.html" class="btn btn-neutral float-right" title="Installation" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
     </div>
@@ -242,7 +212,8 @@ Pull requests are welcome.</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Luis Rocha and Thiago Simas and Rion Brattig Correia.
+        &copy; Copyright 2015, Rocha, L. M., Simas, T. &amp; Correia, R. B..
+      Last updated on Sep 07, 2016.
 
     </p>
   </div>
@@ -264,7 +235,7 @@ Pull requests are welcome.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.2',
+            VERSION:'0.3.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

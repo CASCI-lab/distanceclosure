@@ -20,7 +20,7 @@
     </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Index &mdash; Distance Closure 0.2 documentation</title>
+  <title>Index &mdash; Distance Closure 0.3.1 documentation</title>
   
 
   
@@ -42,7 +42,7 @@
   
 
   
-    <link rel="top" title="Distance Closure 0.2 documentation" href="index.html"/> 
+    <link rel="top" title="Distance Closure 0.3.1 documentation" href="index.html"/> 
 
   
   <script src="static/js/modernizr.min.js"></script>
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.2
+                0.3.1
               </div>
             
           
@@ -92,10 +92,10 @@
             
             
                 <ul>
-<li class="toctree-l1"><a class="reference internal" href="distance.html">Pairwise distance</a></li>
-<li class="toctree-l1"><a class="reference internal" href="closure.html">Transitive Closure</a></li>
-<li class="toctree-l1"><a class="reference internal" href="backbone.html">Backbone Extraction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference/index.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notes.html">Development</a></li>
 </ul>
 
             
@@ -142,35 +142,33 @@
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
- <a href="#B"><strong>B</strong></a>
- | <a href="#C"><strong>C</strong></a>
+ <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
  | <a href="#D"><strong>D</strong></a>
+ | <a href="#F"><strong>F</strong></a>
+ | <a href="#G"><strong>G</strong></a>
+ | <a href="#M"><strong>M</strong></a>
+ | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
+ | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
- | <a href="#U"><strong>U</strong></a>
  
 </div>
-<h2 id="B">B</h2>
+<h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="backbone.html#module-backbone">backbone (module)</a>, <a href="backbone.html#module-backbone">[1]</a>
-  </dt>
-
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="backbone.html#backbone.backbone">backbone() (in module backbone)</a>
+  <dt><a href="reference/dijkstra.html#distanceclosure.dijkstra.Dijkstra.all_pairs_shortest_paths">all_pairs_shortest_paths() (distanceclosure.dijkstra.Dijkstra method)</a>
   </dt>
 
   </dl></td>
 </tr></table>
 
-<h2 id="C">C</h2>
+<h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="closure.html#module-closure">closure (module)</a>, <a href="closure.html#module-closure">[1]</a>
+  <dt><a href="reference/backbone.html#distanceclosure.backbone.backbone">backbone() (in module distanceclosure.backbone)</a>
   </dt>
 
   </dl></td>
@@ -180,13 +178,95 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="utils.html#utils.dist2prox">dist2prox() (in module utils)</a>
+  <dt><a href="reference/utils.html#distanceclosure.utils.dict2matrix">dict2matrix() (in module distanceclosure.utils)</a>
+  </dt>
+
+      
+  <dt><a href="reference/utils.html#distanceclosure.utils.dict2sparse">dict2sparse() (in module distanceclosure.utils)</a>
+  </dt>
+
+      
+  <dt><a href="reference/dijkstra.html#distanceclosure.dijkstra.Dijkstra">Dijkstra (class in distanceclosure.dijkstra)</a>
+  </dt>
+
+      
+  <dt><a href="reference/utils.html#distanceclosure.utils.dist2prox">dist2prox() (in module distanceclosure.utils)</a>
+  </dt>
+
+      
+  <dt><a href="reference/backbone.html#module-distanceclosure.backbone">distanceclosure.backbone (module)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="distance.html#module-distance">distance (module)</a>, <a href="distance.html#module-distance">[1]</a>
+  <dt><a href="reference/closure.html#module-distanceclosure.closure">distanceclosure.closure (module)</a>
+  </dt>
+
+      
+  <dt><a href="reference/dijkstra.html#module-distanceclosure.dijkstra">distanceclosure.dijkstra (module)</a>
+  </dt>
+
+      
+  <dt><a href="reference/distance.html#module-distanceclosure.distance">distanceclosure.distance (module)</a>
+  </dt>
+
+      
+  <dt><a href="reference/fuzzylogic.html#module-distanceclosure.fuzzylogic">distanceclosure.fuzzylogic (module)</a>
+  </dt>
+
+      
+  <dt><a href="reference/utils.html#module-distanceclosure.utils">distanceclosure.utils (module)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="reference/dijkstra.html#distanceclosure.dijkstra.Dijkstra.from_edgelist">from_edgelist() (distanceclosure.dijkstra.Dijkstra method)</a>
+  </dt>
+
+      
+  <dt><a href="reference/dijkstra.html#distanceclosure.dijkstra.Dijkstra.from_numpy_matrix">from_numpy_matrix() (distanceclosure.dijkstra.Dijkstra method)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="reference/dijkstra.html#distanceclosure.dijkstra.Dijkstra.from_sparse_matrix">from_sparse_matrix() (distanceclosure.dijkstra.Dijkstra method)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="G">G</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="reference/dijkstra.html#distanceclosure.dijkstra.Dijkstra.get_shortest_distances_sparse">get_shortest_distances_sparse() (distanceclosure.dijkstra.Dijkstra method)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="M">M</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="reference/utils.html#distanceclosure.utils.matrix2dict">matrix2dict() (in module distanceclosure.utils)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="reference/fuzzylogic.html#distanceclosure.fuzzylogic.operation">operation() (in module distanceclosure.fuzzylogic)</a>
   </dt>
 
   </dl></td>
@@ -196,13 +276,23 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="distance.html#distance.pairwise_proximity">pairwise_proximity() (in module distance)</a>
+  <dt><a href="reference/distance.html#distanceclosure.distance.pairwise_proximity">pairwise_proximity() (in module distanceclosure.distance)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="utils.html#utils.prox2dist">prox2dist() (in module utils)</a>
+  <dt><a href="reference/utils.html#distanceclosure.utils.prox2dist">prox2dist() (in module distanceclosure.utils)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="S">S</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="reference/dijkstra.html#distanceclosure.dijkstra.Dijkstra.single_source_shortest_paths">single_source_shortest_paths() (distanceclosure.dijkstra.Dijkstra method)</a>
   </dt>
 
   </dl></td>
@@ -212,17 +302,7 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="closure.html#closure.transitive_closure">transitive_closure() (in module closure)</a>
-  </dt>
-
-  </dl></td>
-</tr></table>
-
-<h2 id="U">U</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%" valign="top"><dl>
-      
-  <dt><a href="utils.html#module-utils">utils (module)</a>, <a href="utils.html#module-utils">[1]</a>
+  <dt><a href="reference/closure.html#distanceclosure.closure.transitive_closure">transitive_closure() (in module distanceclosure.closure)</a>
   </dt>
 
   </dl></td>
@@ -239,7 +319,8 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Luis Rocha and Thiago Simas and Rion Brattig Correia.
+        &copy; Copyright 2015, Rocha, L. M., Simas, T. &amp; Correia, R. B..
+      Last updated on Sep 07, 2016.
 
     </p>
   </div>
@@ -261,7 +342,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.2',
+            VERSION:'0.3.1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
