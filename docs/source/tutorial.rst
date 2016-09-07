@@ -28,7 +28,7 @@ Then you want to calculate pairwise distance between all columns, extract the me
 		[1,0,0,0]])
 
 	# Calculate Proximity and convert to Distance
-	P = pairwise_proximity(X, metric='jaccard')
+	P = pairwise_proximity(X.T, metric='jaccard')
 	D = prox2dist(P)
 
 	# Calculate transitive closure using the metric and ultra-metric measure
