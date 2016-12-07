@@ -15,6 +15,8 @@ Pull requests are welcome. Please get in contact with me beforehand ``rionbr(at)
 
 Change log
 -----------
+v0.3.3
+	- Added `min_support` for all jaccard metrics.
 v0.3.2
 	- S and B measure added to closure
 v0.3.1

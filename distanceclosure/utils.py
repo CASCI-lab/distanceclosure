@@ -49,7 +49,7 @@ def prox2dist(P):
 	See Also:
 		:attr:`dist2prox`
 	"""
-	if (type(P).__module__ == 'numpy'):
+	if (type(P).__module__.split('.')[0] == 'numpy'):
 		return _prox2dist_numpy(P)
 	elif (type(P).__module__.split('.')[1] == 'sparse'):
 		return _prox2dist_sparse(P)
@@ -92,7 +92,7 @@ def dist2prox(D):
 		:attr:`prox2dist`
 
 	"""
-	if (type(D).__module__ == 'numpy'):
+	if (type(D).__module__.split('.')[0] == 'numpy'):
 		return _dist2prox_numpy(D)
 	elif (type(D).__module__.split('.')[1] == 'sparse'):
 		return _dist2prox_numpy(D)
@@ -100,7 +100,7 @@ def dist2prox(D):
 		raise ValueError("Format not accepted: try numpy or scipy.sparse formats")
 
 def _dist2prox_sparse(A):
-	A.data = dist2prox_numpy(A.data)
+	A.data = _dist2prox_numpy(A.data)
 	return A
 
 def _dist2prox_numpy(A):
