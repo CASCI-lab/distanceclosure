@@ -40,15 +40,13 @@ edgelist_james = {
 # Single Source Shortest Paths > from Numpy
 def test_dijkstra_sssp_from_numpy():
 	""" Test Dijkstra: Single Source Shortest Path (SSSP) from Numpy """
-	dij = Dijkstra(verbose=True)
-	dij.from_numpy_matrix(D)
+	dij = Dijkstra.from_numpy_matrix(D, verbose=True)
 	dij.single_source_shortest_paths(source=0, kind='metric')
 
 # Single Source Shortest Paths > from edgelist
 def test_dijkstra_sssp_from_edgelist():
 	""" Test Dijkstra: Single Source Shortest Path (SSSP) from Edgelist """
-	dij = Dijkstra(verbose=True)
-	dij.from_edgelist(edgelist_james)
+	dij = Dijkstra.from_edgelist(edgelist_james, verbose=True)
 	dij.single_source_shortest_paths(source='s', kind='metric')
 
 
@@ -61,8 +59,7 @@ def test_dijkstra_vs_networkx_single_source_all_lenghts_and_paths():
 	nx_paths = nx.single_source_dijkstra_path(G, source='s', weight='weight')
 	
 	# My Version
-	d = Dijkstra()
-	d.from_edgelist(edgelist_james, directed=False)
+	d = Dijkstra.from_edgelist(edgelist_james, directed=False)
 	dc_lenghts, dc_paths = d.single_source_shortest_paths('s', kind='metric')
 
 	assert (nx_lenghts == dc_lenghts)
@@ -70,18 +67,24 @@ def test_dijkstra_vs_networkx_single_source_all_lenghts_and_paths():
 
 
 def test_dijkstra_vs_networkx_apsp():
-	""" Test Dijkstra: My implementation vs Networkx implementation > All Pairs """
+	""" Test Dijkstra: Rion's implementation vs Networkx implementation > All Pairs """
 	# NX Version
 	G = nx.from_edgelist(edgelist_james) 
 	nx.set_edge_attributes(G, 'weight', edgelist_james)
 	nx_all_complete_paths = nx.all_pairs_dijkstra_path(G, 'weight')
 
 	# My Version
-	d = Dijkstra()
-	d.from_edgelist(edgelist_james, directed=False)
+	d = Dijkstra.from_edgelist(edgelist_james, directed=False)
 	dc_all_lenghts, dc_all_paths = d.all_pairs_shortest_paths()
 	dc_all_complete_paths = d.shortest_complete_paths
 
+	print d
+	print d.N
+	print d.E
+	print 'nx_all_complete_paths'
+	print nx_all_complete_paths
+	print 'dc_all_paths'
+	print dc_all_paths
 	assert (nx_all_complete_paths == dc_all_complete_paths)
 
 

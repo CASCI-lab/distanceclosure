@@ -26,6 +26,7 @@ setup(
 	install_requires=[
 		'numpy',
 		'scipy',
+		'joblib', # for Parallel 
 	],
 	include_package_data=True,
 	zip_safe=False,

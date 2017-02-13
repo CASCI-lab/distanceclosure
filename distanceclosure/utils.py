@@ -62,15 +62,15 @@ def _prox2dist_sparse(A):
 	return A
 
 def _prox2dist_numpy(A):
-	
-	def _prox2dist(x):
-		if x == 0:
-			return np.inf
-		else:
-			return (1/float(x)) - 1
 
 	f = np.vectorize(_prox2dist)
 	return f(A)
+
+def _prox2dist(x):
+	if x == 0:
+		return np.inf
+	else:
+		return (1/float(x)) - 1
 
 def dist2prox(D):
 	"""
@@ -105,15 +105,14 @@ def _dist2prox_sparse(A):
 
 def _dist2prox_numpy(A):
 
-	def _dist2prox(x):
-		if x == np.inf:
-			return 0
-		else:
-			return (x + 1) ** -1
-
 	f = np.vectorize(_dist2prox)
 	return f(A)
 
+def _dist2prox(x):
+	if x == np.inf:
+		return 0
+	else:
+		return (x + 1) ** -1
 #
 # Data format Conversiosn
 #

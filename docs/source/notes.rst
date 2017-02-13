@@ -8,15 +8,18 @@ Notes
 
 Here are some TODOs:
 
-* Parallelize the Dijkstra algorithm.
-* Port the Dijkstra algorithm to cython, running in parallel;
+* Port the Dijkstra algorithm to Cython, running in parallel.
 
 Pull requests are welcome. Please get in contact with me beforehand ``rionbr(at)gmail(dot)com``.
 
 Change log
 -----------
+v0.3.5
+	- Dijkstra APSP parallelized.
+v0.3.4
+	- Minor fixes.
 v0.3.3
-	- Added `min_support` for all jaccard metrics.
+	- Added ``min_support`` for all jaccard metrics.
 v0.3.2
 	- S and B measure added to closure
 v0.3.1

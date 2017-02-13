@@ -104,25 +104,23 @@ def transitive_closure(D, kind='metric', algorithm='dense', *args, **kwargs):
 	# Dijkstra
 	elif algorithm == 'dijkstra':
 
-		dij = Dijkstra(*args, **kwargs)
-
 		# Numpy object
 		if (type(D).__module__ == np.__name__):
-			dij.from_numpy_matrix(D)
+			dij = Dijkstra.from_numpy_matrix(D, *args, **kwargs)
 		
 		# Edgelist object
 		elif (isinstance(D, dict)):
-			dij.from_edgelist(D)
+			dij = Dijkstra.from_edgelist(D, *args, **kwargs)
 
 		# Sparse Matrix
 		elif (ssp.issparse(D)):
-			dij.from_sparse_matrix(D)
+			dij = Dijkstra.from_sparse_matrix(D, *args, **kwargs)
 
 		else:
 			raise TypeError("Invalid Input. For the Dijkstra algorithm, input must be `Numpy matrix`, `Scipy Sparse Matrix` or `Edgelist dict`")
 
 		dij.all_pairs_shortest_paths(kind=kind)
-		return dij.get_shortest_distances_sparse()
+		return dij.get_shortest_distances(format='sparse')
 	
 
 def _transitive_closure_dense_numpy(A, kind='metric', verbose=False):

@@ -39,7 +39,9 @@ def pairwise_proximity(M, metric='jaccard', *args, **kwargs):
 				- Numeric item-wise comparison: ``jaccard``, (scipy.spatial.dist.jaccard)
 				- Set comparison: ``jaccard_set``, ``js``
 				- Weighted item-wise comparison: ``weighted_jaccard``, ``wj``
+				- Note: Also accepts a custom function being passed.
 		min_support (Optional[int]) : the minimum support passed to the metric function.
+		verbose (bool) : print every line as it computes.
 
 	Returns:
 		M (matrix) : The matrix of proximities
@@ -115,8 +117,7 @@ def pairwise_proximity(M, metric='jaccard', *args, **kwargs):
 
 def _pairwise_proximity_numpy(M, metric='jaccard', *args, **kwargs):	
 	""" Pairwise proximity computation over dense matrix (numpy) """
-	coef = _get_dense_metric_function(metric)
-
+	
 	# If is not a Numpy array
 	if type(M) != 'numpy.ndarray':
 		M = np.array(M)
@@ -125,13 +126,23 @@ def _pairwise_proximity_numpy(M, metric='jaccard', *args, **kwargs):
 	if M.min() < 0:
 		raise TypeError("Matrix cannot have negative numbers")
 
+	# Get coef (metric) function from string
+	if isinstance(metric, str):
+		coef = _get_dense_metric_function(metric)
+	# or a function was passed
+	else:
+		coef = metric
+
+	# Verbose Attr
+	verbose = kwargs.pop('verbose', False)
+
 	# Calculate proximity
 	m, n = M.shape
 	pm = np.zeros((m * (m - 1)) // 2, dtype=np.double)
 	
 	k = 0
 	for i in xrange(0, m - 1):
-		if 'verbose' in args:
+		if verbose:
 			print 'calc row:',i,'of',m-1
 		for j in xrange(i + 1, m):
 			pm[k] = coef(M[i,:], M[j,:], *args, **kwargs)
@@ -143,7 +154,13 @@ def _pairwise_proximity_numpy(M, metric='jaccard', *args, **kwargs):
 
 def _pairwise_proximity_sparse(X, metric='jaccard', *args, **kwargs):
 	""" Pairwise proximity computation over sparse matrix (scipy.sparse) """
-	how, coef = _get_sparse_metric_function(metric)
+
+	# Get coef (metric) function from string
+	if isinstance(metric, str):
+		how, coef = _get_sparse_metric_function(metric)
+	# or a function was passed
+	else:
+		how, coef = metric
 	
 	if how == 'indices':
 		generator = (coef(row1.indices, row2.indices) for row1, row2 in combinations(X, r=2))
@@ -167,7 +184,7 @@ def _jaccard_coef_scipy(u, v, min_support=1):
 def _jaccard_coef_binary(u, v, min_support=1):
 	u = u.astype(bool)
 	v = v.astype(bool)
-	if np.sum(u) + np.sum(v) >= min_support:
+	if np.sum(u + v) >= min_support:
 		return (np.double(np.bitwise_and(u,v).sum()) / np.double( np.bitwise_or(u,v).sum()))
 	else:
 		return 0.
