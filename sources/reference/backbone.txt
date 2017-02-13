@@ -1,3 +1,0 @@
-
-.. automodule:: distanceclosure.backbone
-	:members:

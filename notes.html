@@ -19,7 +19,7 @@
     </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Development &mdash; Distance Closure 0.3.1 documentation</title>
+  <title>Development &mdash; Distance Closure 0.3.5 documentation</title>
   
 
   
@@ -41,7 +41,7 @@
   
 
   
-    <link rel="top" title="Distance Closure 0.3.1 documentation" href="index.html"/>
+    <link rel="top" title="Distance Closure 0.3.5 documentation" href="index.html"/>
         <link rel="prev" title="Utils" href="reference/utils.html"/> 
 
   
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.3.1
+                0.3.5
               </div>
             
           
@@ -97,7 +97,7 @@
 <li class="toctree-l1"><a class="reference internal" href="reference/index.html">API Reference</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">Development</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#notes">Notes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#changelog">Changelog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#change-log">Change log</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#tests">Tests</a></li>
 </ul>
 </li>
@@ -152,14 +152,33 @@
 <h2>Notes<a class="headerlink" href="#notes" title="Permalink to this headline">¶</a></h2>
 <p>Here are some TODOs:</p>
 <ul class="simple">
-<li>Parallelize the Dijkstra algorithm.</li>
-<li>Port the Dijkstra algorithm to cython, running in parallel;</li>
+<li>Port the Dijkstra algorithm to Cython, running in parallel.</li>
 </ul>
 <p>Pull requests are welcome. Please get in contact with me beforehand <code class="docutils literal"><span class="pre">rionbr(at)gmail(dot)com</span></code>.</p>
 </div>
-<div class="section" id="changelog">
-<h2>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="change-log">
+<h2>Change log<a class="headerlink" href="#change-log" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
+<dt>v0.3.5</dt>
+<dd><ul class="first last simple">
+<li>Dijkstra APSP parallelized.</li>
+</ul>
+</dd>
+<dt>v0.3.4</dt>
+<dd><ul class="first last simple">
+<li>Minor fixes.</li>
+</ul>
+</dd>
+<dt>v0.3.3</dt>
+<dd><ul class="first last simple">
+<li>Added <code class="docutils literal"><span class="pre">min_support</span></code> for all jaccard metrics.</li>
+</ul>
+</dd>
+<dt>v0.3.2</dt>
+<dd><ul class="first last simple">
+<li>S and B measure added to closure</li>
+</ul>
+</dd>
 <dt>v0.3.1</dt>
 <dd><ul class="first last simple">
 <li>Fuzzy Logic for Graphs added</li>
@@ -214,7 +233,7 @@
   <div role="contentinfo">
     <p>
         &copy; Copyright 2015, Rocha, L. M., Simas, T. &amp; Correia, R. B..
-      Last updated on Sep 07, 2016.
+      Last updated on Feb 13, 2017.
 
     </p>
   </div>
@@ -236,7 +255,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.3.1',
+            VERSION:'0.3.5',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

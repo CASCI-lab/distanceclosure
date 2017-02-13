@@ -19,7 +19,7 @@
     </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Pairwise distance &mdash; Distance Closure 0.3.1 documentation</title>
+  <title>Pairwise distance &mdash; Distance Closure 0.3.5 documentation</title>
   
 
   
@@ -41,7 +41,7 @@
   
 
   
-    <link rel="top" title="Distance Closure 0.3.1 documentation" href="../index.html"/>
+    <link rel="top" title="Distance Closure 0.3.5 documentation" href="../index.html"/>
         <link rel="up" title="API Reference" href="index.html"/>
         <link rel="next" title="Transitive closure" href="closure.html"/>
         <link rel="prev" title="API Reference" href="index.html"/> 
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.3.1
+                0.3.5
               </div>
             
           
@@ -170,13 +170,16 @@ Three types of Jaccard proximity is available depending on your data.</p>
 Allowed values:</p>
 <blockquote>
 <div><ul>
-<li>Binary item-wise comparison: <code class="docutils literal"><span class="pre">jaccard</span></code>, <code class="docutils literal"><span class="pre">jb</span></code>, <code class="docutils literal"><span class="pre">jaccard_bitwise</span></code></li>
+<li>Binary item-wise comparison: <code class="docutils literal"><span class="pre">jaccard_binary</span></code>, <code class="docutils literal"><span class="pre">jb</span></code></li>
+<li>Numeric item-wise comparison: <code class="docutils literal"><span class="pre">jaccard</span></code>, (scipy.spatial.dist.jaccard)</li>
 <li>Set comparison: <code class="docutils literal"><span class="pre">jaccard_set</span></code>, <code class="docutils literal"><span class="pre">js</span></code></li>
 <li>Weighted item-wise comparison: <code class="docutils literal"><span class="pre">weighted_jaccard</span></code>, <code class="docutils literal"><span class="pre">wj</span></code></li>
+<li>Note: Also accepts a custom function being passed.</li>
 </ul>
 </div></blockquote>
 </li>
-<li><strong>min_support</strong> (<em>Optional[int]</em>) &#8211; the minimum support passed to &#8216;weighted_jaccard&#8217;</li>
+<li><strong>min_support</strong> (<em>Optional[int]</em>) &#8211; the minimum support passed to the metric function.</li>
+<li><strong>verbose</strong> (<em>bool</em>) &#8211; print every line as it computes.</li>
 </ul>
 </td>
 </tr>
@@ -190,33 +193,50 @@ The matrix of proximities</p>
 </tbody>
 </table>
 <p class="rubric">Examples</p>
-<p>There are three ways to compute the proximity, here are some examples:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Binary Matrix</span>
+<p>There are four ways to compute the proximity, here are some examples:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Numeric Matrix (not necessarily a network)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">N</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+<span class="go">        [2,3,4,2],</span>
+<span class="go">        [2,3,4,2],</span>
+<span class="go">        [2,3,3,2],</span>
+<span class="go">        [2,1,3,4]])</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Binary Adjacency Matrix</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
 <span class="go">        [1,1,1,1],</span>
 <span class="go">        [1,1,1,0],</span>
 <span class="go">        [1,1,0,0],</span>
-<span class="go">        [1,0,0,0],</span>
-<span class="go">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Weighted Matrix</span>
+<span class="go">        [1,0,0,0]])</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Weighted Adjacency Matrix</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
 <span class="go">        [4,3,2,1],</span>
 <span class="go">        [3,2,1,0],</span>
 <span class="go">        [2,1,0,0],</span>
-<span class="go">        [1,0,0,0],</span>
-<span class="go">])</span>
+<span class="go">        [1,0,0,0]])</span>
+</pre></div>
+</div>
+<p>Numeric Jaccard: the default and most commonly used version. Implemented from <cite>scipy.spatial.distance</cite>.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pairwise_proximity</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;jaccard&#39;</span><span class="p">)</span>
+<span class="go">        [[ 1. , 1.  , 0.75, 0.25],</span>
+<span class="go">        [ 1.  , 1.  , 0.75, 0.25],</span>
+<span class="go">        [ 0.75, 0.75, 1.  , 0.5 ],</span>
+<span class="go">        [ 0.25, 0.25, 0.5 , 1.  ]]</span>
 </pre></div>
 </div>
 <p>Binary Jaccard: the default and most commonly used version.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pairwise_proximity</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;jaccard&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pairwise_proximity</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;jaccard_binary&#39;</span><span class="p">)</span>
 <span class="go">        [[ 1. , 0.75, 0.5 , 0.25],</span>
 <span class="go">        [ 0.75, 1.  , 0.66, 0.33],</span>
 <span class="go">        [ 0.5 , 0.66, 1.  , 0.5 ],</span>
 <span class="go">        [ 0.25, 0.33, 0.5 , 1.  ]]</span>
 </pre></div>
 </div>
-<p>Set Jaccard: it treats the values in each vector as a set of objects, therefore their order is not taken into account.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pairwise_proximity</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;set&#39;</span><span class="p">)</span>
+<p>Set Jaccard: it treats the values in each vector as a set of objects, therefore their order is not taken into account.
+Note that zeroes are treated as a set item.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pairwise_proximity</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;jaccard_set&#39;</span><span class="p">)</span>
 <span class="go">        [[ 1., 0.6 , 0.4 , 0.2 ],</span>
 <span class="go">        [ 0.6, 1.  , 0.75, 0.5 ],</span>
 <span class="go">        [ 0.4, 0.75, 1.  , 0.67],</span>
@@ -224,7 +244,7 @@ The matrix of proximities</p>
 </pre></div>
 </div>
 <p>Weighted Jaccard: the version for weighted graphs.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pairwise_proximity</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;weighted&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pairwise_proximity</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;jaccard_weighted&#39;</span><span class="p">)</span>
 <span class="go">        [ 1.,   0.6,  0.3,  0.1],</span>
 <span class="go">        [ 0.6,  1.,   0.,   0. ],</span>
 <span class="go">        [ 0.3,  0.,   1.,   0. ],</span>
@@ -255,7 +275,7 @@ The matrix of proximities</p>
   <div role="contentinfo">
     <p>
         &copy; Copyright 2015, Rocha, L. M., Simas, T. &amp; Correia, R. B..
-      Last updated on Sep 07, 2016.
+      Last updated on Feb 13, 2017.
 
     </p>
   </div>
@@ -277,7 +297,7 @@ The matrix of proximities</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.3.1',
+            VERSION:'0.3.5',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

@@ -19,7 +19,7 @@
     </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>distanceclosure.utils &mdash; Distance Closure 0.3.1 documentation</title>
+  <title>distanceclosure.utils &mdash; Distance Closure 0.3.5 documentation</title>
   
 
   
@@ -41,7 +41,7 @@
   
 
   
-    <link rel="top" title="Distance Closure 0.3.1 documentation" href="../../index.html"/>
+    <link rel="top" title="Distance Closure 0.3.5 documentation" href="../../index.html"/>
         <link rel="up" title="distanceclosure" href="../distanceclosure.html"/> 
 
   
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.3.1
+                0.3.5
               </div>
             
           
@@ -194,7 +194,7 @@
 <span class="sd">	See Also:</span>
 <span class="sd">		:attr:`dist2prox`</span>
 <span class="sd">	&quot;&quot;&quot;</span>
-	<span class="k">if</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">P</span><span class="p">)</span><span class="o">.</span><span class="n">__module__</span> <span class="o">==</span> <span class="s1">&#39;numpy&#39;</span><span class="p">):</span>
+	<span class="k">if</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">P</span><span class="p">)</span><span class="o">.</span><span class="n">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;numpy&#39;</span><span class="p">):</span>
 		<span class="k">return</span> <span class="n">_prox2dist_numpy</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
 	<span class="k">elif</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">P</span><span class="p">)</span><span class="o">.</span><span class="n">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;sparse&#39;</span><span class="p">):</span>
 		<span class="k">return</span> <span class="n">_prox2dist_sparse</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
@@ -207,15 +207,15 @@
 	<span class="k">return</span> <span class="n">A</span>
 
 <span class="k">def</span> <span class="nf">_prox2dist_numpy</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
-	
-	<span class="k">def</span> <span class="nf">_prox2dist</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-		<span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-			<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="k">return</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
 
 	<span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">_prox2dist</span><span class="p">)</span>
 	<span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_prox2dist</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+	<span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">return</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
 
 <div class="viewcode-block" id="dist2prox"><a class="viewcode-back" href="../../reference/utils.html#distanceclosure.utils.dist2prox">[docs]</a><span class="k">def</span> <span class="nf">dist2prox</span><span class="p">(</span><span class="n">D</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
@@ -237,7 +237,7 @@
 <span class="sd">		:attr:`prox2dist`</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
-	<span class="k">if</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">D</span><span class="p">)</span><span class="o">.</span><span class="n">__module__</span> <span class="o">==</span> <span class="s1">&#39;numpy&#39;</span><span class="p">):</span>
+	<span class="k">if</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">D</span><span class="p">)</span><span class="o">.</span><span class="n">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;numpy&#39;</span><span class="p">):</span>
 		<span class="k">return</span> <span class="n">_dist2prox_numpy</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
 	<span class="k">elif</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">D</span><span class="p">)</span><span class="o">.</span><span class="n">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;sparse&#39;</span><span class="p">):</span>
 		<span class="k">return</span> <span class="n">_dist2prox_numpy</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
@@ -245,20 +245,19 @@
 		<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Format not accepted: try numpy or scipy.sparse formats&quot;</span><span class="p">)</span></div>
 
 <span class="k">def</span> <span class="nf">_dist2prox_sparse</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
-	<span class="n">A</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">dist2prox_numpy</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+	<span class="n">A</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">_dist2prox_numpy</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 	<span class="k">return</span> <span class="n">A</span>
 
 <span class="k">def</span> <span class="nf">_dist2prox_numpy</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
 
-	<span class="k">def</span> <span class="nf">_dist2prox</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-		<span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">:</span>
-			<span class="k">return</span> <span class="mi">0</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span>
-
 	<span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">_dist2prox</span><span class="p">)</span>
 	<span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
 
+<span class="k">def</span> <span class="nf">_dist2prox</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+	<span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">:</span>
+		<span class="k">return</span> <span class="mi">0</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span>
 <span class="c1">#</span>
 <span class="c1"># Data format Conversiosn</span>
 <span class="c1">#</span>
@@ -354,7 +353,7 @@
   <div role="contentinfo">
     <p>
         &copy; Copyright 2015, Rocha, L. M., Simas, T. &amp; Correia, R. B..
-      Last updated on Sep 07, 2016.
+      Last updated on Feb 13, 2017.
 
     </p>
   </div>
@@ -376,7 +375,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'0.3.1',
+            VERSION:'0.3.5',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
