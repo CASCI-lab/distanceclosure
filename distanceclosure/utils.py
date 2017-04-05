@@ -194,5 +194,5 @@ def dict2sparse(d):
 	Note:
 		Uses pandas to convert dict into dataframe and then feeds it to the `csr_matrix`.
 	"""
-	return csr_matrix(pd.DataFrame.from_dict(d).values)
+	return csr_matrix(pd.DataFrame.from_dict(d,orient='index').values)
 

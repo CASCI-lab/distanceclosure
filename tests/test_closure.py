@@ -69,16 +69,17 @@ def test_dense_backbone():
 #
 # Dijkstra
 #
-def test_dijkstra_vs_dense_transitive_closure_ultrametric():
+def test_dijkstra_vs_dense_transitive_closure_metric():
 	""" Test Closure: Dijkstra vs Dense metric comparison """
-	C_Dense_um = transitive_closure(D, kind='metric', algorithm='dense')
+	C_Dense_um    = transitive_closure(D, kind='metric', algorithm='dense')
 	C_Djisktra_um = transitive_closure(D, kind='metric', algorithm='dijkstra')	
-	assert (C_Dense_um == dict2matrix(C_Djisktra_um)).all()
+
+	assert (C_Dense_um == C_Djisktra_um.A).all()
 
 def test_dijkstra_vs_dense_transitive_closure_ultrametric():
-	""" Test Closure: Dijkstra vs Dense ultra metric comparison """
-	C_Dense_um = transitive_closure(D, kind='ultrametric', algorithm='dense')
-	C_Djisktra_um = transitive_closure(D_sparse, kind='ultrametric', algorithm='dijkstra')	
+	""" Test Closure: Dijkstra vs Dense ultrametric comparison """
+	C_Dense_um    = transitive_closure(D, kind='ultrametric', algorithm='dense')
+	C_Djisktra_um = transitive_closure(D_sparse, kind='ultrametric', algorithm='dijkstra')
 	assert (C_Dense_um == C_Djisktra_um.A).all()
 
 def test_dijkstra_vs_dense_backbone():
@@ -86,12 +87,13 @@ def test_dijkstra_vs_dense_backbone():
 	C_Dense_m = transitive_closure(D, kind='metric', algorithm='dense')
 	B_Dense_m = backbone(D, C_Dense_m)
 
-	C_Djisktra_m = transitive_closure(D, kind='metric', algorithm='dijkstra')
+	C_Djisktra_m = transitive_closure(D_sparse, kind='metric', algorithm='dijkstra')
 	B_Djisktra_m = backbone(D_sparse, C_Djisktra_m)
 
 	# The Sparse matrix version does not put a -1 in the diagonal.
 	B_Djisktra_m = B_Djisktra_m.A
 	np.fill_diagonal( B_Djisktra_m, -1)
+
 	assert (B_Dense_m == B_Djisktra_m).all()
 
 

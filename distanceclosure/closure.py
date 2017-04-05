@@ -119,7 +119,7 @@ def transitive_closure(D, kind='metric', algorithm='dense', *args, **kwargs):
 		else:
 			raise TypeError("Invalid Input. For the Dijkstra algorithm, input must be `Numpy matrix`, `Scipy Sparse Matrix` or `Edgelist dict`")
 
-		dij.all_pairs_shortest_paths(kind=kind)
+		dij.all_pairs_shortest_distances(kind=kind, *args, **kwargs)
 		return dij.get_shortest_distances(format='sparse')
 	
 

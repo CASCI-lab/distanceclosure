@@ -1,9 +1,38 @@
+from __future__ import absolute_import, print_function
+
+import os
+import sys
+import subprocess
+
 from setuptools import setup
+from setuptools.extension import Extension
+from Cython.Build import cythonize
 from distanceclosure import __version__
 
+# Receive Args
+args = sys.argv[1:]
+ext = '.pyx'# if USE_CYTHON else '.c'
+
+# Readme
 def readme():
 	with open('README.md') as f:
 		return f.read()
+
+# Remove old files
+subprocess.Popen("rm -rf build", shell=True, executable="/bin/bash")
+subprocess.Popen("rm -rf distanceclosure/cython/*.c", shell=True, executable="/bin/bash")
+subprocess.Popen("rm -rf *.so", shell=True, executable="/bin/bash")
+#
+#
+#
+_dijkstra_sources = [
+	'distanceclosure/cython/_dijkstra'+ext,
+	'distanceclosure/cython/libpqueue/pqueue.c'
+]
+
+ext_modules = [
+	Extension("_dijkstra", sources=_dijkstra_sources)
+]
 
 setup(
 	name='distanceclosure',
@@ -28,6 +57,8 @@ setup(
 		'scipy',
 		'joblib', # for Parallel 
 	],
+	ext_modules=cythonize(ext_modules),
 	include_package_data=True,
 	zip_safe=False,
 	)
+

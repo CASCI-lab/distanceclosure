@@ -38,17 +38,16 @@ edgelist_james = {
 }
 
 # Single Source Shortest Paths > from Numpy
-def test_dijkstra_sssp_from_numpy():
+def test_dijkstra_sssd_python_from_numpy():
 	""" Test Dijkstra: Single Source Shortest Path (SSSP) from Numpy """
 	dij = Dijkstra.from_numpy_matrix(D, verbose=True)
-	dij.single_source_shortest_paths(source=0, kind='metric')
+	dij.single_source_shortest_distances(source=0, kind='metric', engine='python')
 
 # Single Source Shortest Paths > from edgelist
-def test_dijkstra_sssp_from_edgelist():
+def test_dijkstra_sssd_python_from_edgelist():
 	""" Test Dijkstra: Single Source Shortest Path (SSSP) from Edgelist """
 	dij = Dijkstra.from_edgelist(edgelist_james, verbose=True)
-	dij.single_source_shortest_paths(source='s', kind='metric')
-
+	dij.single_source_shortest_distances(source='s', kind='metric', engine='python')
 
 def test_dijkstra_vs_networkx_single_source_all_lenghts_and_paths():
 	""" Test Dijkstra: Rion's implementation vs Networkx implementation > Single Source """
@@ -60,10 +59,11 @@ def test_dijkstra_vs_networkx_single_source_all_lenghts_and_paths():
 	
 	# My Version
 	d = Dijkstra.from_edgelist(edgelist_james, directed=False)
-	dc_lenghts, dc_paths = d.single_source_shortest_paths('s', kind='metric')
+	dc_lenghts = d.single_source_shortest_distances('s', kind='metric', engine='python')
+	dc_paths = d.single_source_shortest_paths('s')
 
-	assert (nx_lenghts == dc_lenghts)
-	assert (nx_paths == dc_paths)
+	assert (nx_lenghts == d.get_shortest_distances(source='s', translate=True))
+	assert (nx_paths == d.get_shortest_paths(source='s', translate=True))
 
 
 def test_dijkstra_vs_networkx_apsp():
@@ -75,16 +75,11 @@ def test_dijkstra_vs_networkx_apsp():
 
 	# My Version
 	d = Dijkstra.from_edgelist(edgelist_james, directed=False)
-	dc_all_lenghts, dc_all_paths = d.all_pairs_shortest_paths()
-	dc_all_complete_paths = d.shortest_complete_paths
+	dc_all_lenghts, dc_paths = d.all_pairs_shortest_distances(n_jobs=2, engine='python')
+	dc_all_complete_paths = d.all_pairs_shortest_paths(n_jobs=2, engine='python')
+	# Needs to translate from integers to the name of the variables
+	dc_all_complete_paths_translated = d.get_shortest_paths(translate=True)
 
-	print d
-	print d.N
-	print d.E
-	print 'nx_all_complete_paths'
-	print nx_all_complete_paths
-	print 'dc_all_paths'
-	print dc_all_paths
-	assert (nx_all_complete_paths == dc_all_complete_paths)
+	assert (nx_all_complete_paths == dc_all_complete_paths_translated)
 
 
