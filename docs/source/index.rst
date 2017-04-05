@@ -31,7 +31,7 @@ Documentation:
 	install
 	tutorial
 	reference/index
-	notes
+	development
 
 
 Indices and tables

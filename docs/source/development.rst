@@ -3,17 +3,19 @@ Development
 
 This package is still in beta development. Please note that it might contain errors.
 
-Notes
-------
+Notes:
+-------
 
 Here are some TODOs:
 
-* Port the Dijkstra algorithm to Cython, running in parallel.
+* Find more things to implement ;)
 
 Pull requests are welcome. Please get in contact with me beforehand ``rionbr(at)gmail(dot)com``.
 
 Change log
 -----------
+v.0.3.6
+	- Dijkstra Cythonized.
 v0.3.5
 	- Dijkstra APSP parallelized.
 v0.3.4

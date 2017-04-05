@@ -35,11 +35,11 @@ def pairwise_proximity(M, metric='jaccard', *args, **kwargs):
 		M (matrix) : adjacency matrix
 		metric (str) : Jaccard proximity metric
 			Allowed values:
-				- Binary item-wise comparison: ``jaccard_binary``, ``jb``
-				- Numeric item-wise comparison: ``jaccard``, (scipy.spatial.dist.jaccard)
-				- Set comparison: ``jaccard_set``, ``js``
-				- Weighted item-wise comparison: ``weighted_jaccard``, ``wj``
-				- Note: Also accepts a custom function being passed.
+			- Binary item-wise comparison: ``jaccard_binary``, ``jb``
+			- Numeric item-wise comparison: ``jaccard``, (scipy.spatial.dist.jaccard)
+			- Set comparison: ``jaccard_set``, ``js``
+			- Weighted item-wise comparison: ``weighted_jaccard``, ``wj``
+			- Note: Also accepts a custom function being passed.
 		min_support (Optional[int]) : the minimum support passed to the metric function.
 		verbose (bool) : print every line as it computes.
 

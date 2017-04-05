@@ -71,6 +71,7 @@ class Dijkstra(object):
 		Args:
 			kind (string): The metric type. 'metric' or 'ultrametric' are currently accepted.
 			n_jobs (int, optional): The number of CPUs to use to do the computation. ``-1`` means 'all CPUs'.
+			engine (string): The implementation to use. Either ``cython`` or ``python``.
 			verbose (int, optional): The verbosity level: if non zero, progress messages are printed.
 				Above 50, the output is sent to stdout. The frequency of the messages increases with the verbosity level.
 				If it more than 10, all iterations are reported.
@@ -113,6 +114,7 @@ class Dijkstra(object):
 
 		Args:
 			n_jobs (int, optional): The number of CPUs to use to do the computation. ``-1`` means 'all CPUs'.
+			engine (string): The implementation to use. Either ``cython`` or ``python``.
 			verbose (int, optional): The verbosity level: if non zero, progress messages are printed. Above 50, the output is sent to stdout.
 				The frequency of the messages increases with the verbosity level. If it more than 10, all iterations are reported.
 		
@@ -144,6 +146,7 @@ class Dijkstra(object):
 		Args:
 			source (int or string): the source node to compute shortest distances to every other node.
 			kind (string): The metric type. 'metric' or 'ultrametric' are currently accepted.
+			engine (string): The implementation to use. Either ``cython`` or ``python``.
 
 		Returns:
 			shortest_distances (dict): A dict of distances between the source all other nodes.
@@ -177,6 +180,7 @@ class Dijkstra(object):
 
 		Args:
 			source (int or string): the source node to compute the shortest paths to every other node.
+			engine (string): The implementation to use. Either ``cython`` or ``python``.
 
 		Returns:
 			shortest_paths (dict): A dict-of-list of the shortest distance path between the source and all other nodes. Ex: ``{'c':['a','b','c']}}``

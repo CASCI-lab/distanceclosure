@@ -2,7 +2,7 @@ Installation
 =============
 
 
-Before installing NetworkX, you need to have
+Before installing Distance Closure, you need to have
 `setuptools <https://pypi.python.org/pypi/setuptools>`_ installed.
 
 Download

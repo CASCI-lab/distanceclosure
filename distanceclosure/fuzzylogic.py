@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Fuzzy Logic for graphs
-====================
+=======================
 
 Operations of fuzzy logic between graphs.
 Notation: given two graphs :math:`G` and :math:`H`, calculates a fuzzy function between them.
