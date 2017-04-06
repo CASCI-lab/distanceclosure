@@ -1,17 +1,21 @@
 from __future__ import absolute_import, print_function
-
+#
 import os
 import sys
 import subprocess
-
+#
 from setuptools import setup
 from setuptools.extension import Extension
 from Cython.Build import cythonize
+try:
+	from Cython.Distutils import build_ext
+except:
+	USE_CYTHON = False
+else:
+	USE_CYTHON = True
+#
 from distanceclosure import __version__
 
-# Receive Args
-args = sys.argv[1:]
-ext = '.pyx'# if USE_CYTHON else '.c'
 
 # Readme
 def readme():
@@ -25,14 +29,18 @@ subprocess.Popen("rm -rf *.so", shell=True, executable="/bin/bash")
 #
 #
 #
-_dijkstra_sources = [
-	'distanceclosure/cython/_dijkstra'+ext,
-	'distanceclosure/cython/libpqueue/pqueue.c'
-]
-
-ext_modules = [
-	Extension("_dijkstra", sources=_dijkstra_sources)
-]
+cmdclass = {}
+ext_modules = []
+#
+if USE_CYTHON:
+	ext_modules += [
+		Extension("distanceclosure.cython._dijkstra", sources=['distanceclosure/cython/_dijkstra.pyx', 'distanceclosure/cython/libpqueue/pqueue.c'])
+	]
+	cmdclass.update({'build_ext':build_ext})
+else:
+	ext_modules += [
+		Extension("distanceclosure.cython._dijkstra", sources=['distanceclosure/cython/_dijkstra.c', 'distanceclosure/cython/libpqueue/pqueue.c'])
+	]
 
 setup(
 	name='distanceclosure',
@@ -56,9 +64,14 @@ setup(
 		'numpy',
 		'scipy',
 		'joblib', # for Parallel 
+		'cython', # for Dijkstra
 	],
 	ext_modules=cythonize(ext_modules),
+	cmdclass=cmdclass,
 	include_package_data=True,
+	package_data={
+
+	},
 	zip_safe=False,
 	)
 

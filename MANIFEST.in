@@ -1,5 +1,4 @@
-include README.md
+include LICENSE README.md
 include distanceclosure/*.py
 include tests/*.py
-include distanceclosure/cython/*.py
-include distanceclosure/cython/*.so
+recursive-include distanceclosure/cython/*
