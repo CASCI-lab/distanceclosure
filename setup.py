@@ -1,21 +1,15 @@
-from __future__ import absolute_import, print_function
-#
-import os
-import sys
-import subprocess
-#
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from Cython.Build import cythonize
+
 try:
 	from Cython.Distutils import build_ext
 except:
 	USE_CYTHON = False
 else:
 	USE_CYTHON = True
-#
 from distanceclosure import __version__
-
+import subprocess
 
 # Readme
 def readme():
@@ -59,7 +53,7 @@ setup(
 	author="Rion Brattig Correia",
 	author_email="rionbr@gmail.com",
 	license="GPL 2.0",
-	packages=['distanceclosure'],
+	packages=find_packages(),
 	install_requires=[
 		'numpy',
 		'scipy',
