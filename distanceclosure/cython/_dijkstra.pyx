@@ -19,15 +19,15 @@ __author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
 #
 #
 #
-def _cy_single_source_shortest_distances(int source, list N, dict E, dict neighbors, tuple operators, int verbose):
+def _cy_single_source_shortest_distances(int source, list N, dict E, dict neighbors, tuple operator_names, int verbose):
 	"""
 	The Cython wrapper for the C function `_c_single_source_shortest_distances`
 	"""
-	return _c_single_source_shortest_distances(source, N, E, neighbors, operators, verbose)
+	return _c_single_source_shortest_distances(source, N, E, neighbors, operator_names, verbose)
 #
 #
 #
-cdef _c_single_source_shortest_distances(int source, list N, dict E, dict neighbors, tuple operators, int verbose):
+cdef tuple _c_single_source_shortest_distances(int source, list N, dict E, dict neighbors, tuple operator_names, int verbose):
 	"""
 	Compute shortest path between source and all other reachable nodes.
 
@@ -70,6 +70,12 @@ cdef _c_single_source_shortest_distances(int source, list N, dict E, dict neighb
 	paths = dict()
 	visited_edges = set()
 	n_nodes = len(N)
+	# Operators
+	conj,disj = operator_names
+	if disj == 'sum':
+		disj = sum
+	elif disj == 'max':
+		disj = max
 
 	# The Data structs (node_t) to be added to the PQueue
 	cdef node_t *ns = <node_t *>malloc(n_nodes * sizeof(node_t))
@@ -99,9 +105,6 @@ cdef _c_single_source_shortest_distances(int source, list N, dict E, dict neighb
 	while pqueue_size(Q):
 		n = <node_t*>pqueue_pop(Q)
 		
-		if verbose > 0:
-			print '-Node:',n.node, '| node distance:', n.dist
-		
 		# Iterate over all neighbors of node 
 		for neighbor in neighbors[n.node]:
 
@@ -111,11 +114,9 @@ cdef _c_single_source_shortest_distances(int source, list N, dict E, dict neighb
 
 			# the edge distance/weight/cost
 			weight = E[ (n.node, neighbor) ]
-			if verbose > 2:
-				print 'neighbor:',neighbor , '| weight:', weight
 
 			# Operation to decide how to compute the lenght, summing edges (metric) or taking the max (ultrametric)
-			new_dist = operators[1]([n.dist , weight])
+			new_dist = disj([n.dist , weight])
 
 			# If this is a shortest distance, update
 			if new_dist < final_dist[neighbor]:
@@ -134,7 +135,7 @@ cdef _c_single_source_shortest_distances(int source, list N, dict E, dict neighb
 	free(ns);
 
 	# Return
-	return final_dist, paths
+	return final_dist , paths
 #
 #
 #

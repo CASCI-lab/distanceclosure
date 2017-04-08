@@ -71,6 +71,7 @@ class Dijkstra(object):
 		Args:
 			kind (string): The metric type. 'metric' or 'ultrametric' are currently accepted.
 			n_jobs (int, optional): The number of CPUs to use to do the computation. ``-1`` means 'all CPUs'.
+				Only available for 'python' engine.
 			engine (string): The implementation to use. Either ``cython`` or ``python``.
 			verbose (int, optional): The verbosity level: if non zero, progress messages are printed.
 				Above 50, the output is sent to stdout. The frequency of the messages increases with the verbosity level.
@@ -96,11 +97,19 @@ class Dijkstra(object):
 
 		# Shortest Distances in Parallel
 		if engine == 'python':
-			poolresult = Parallel(n_jobs=n_jobs,verbose=verbose)(delayed(_py_single_source_shortest_distances)(node, self.N, self.E, self.neighbours, operators, verbose) for node in self.N)
+			
+			poolresults = Parallel(n_jobs=n_jobs,verbose=verbose)(delayed(_py_single_source_shortest_distances)(node, self.N, self.E, self.neighbours, operators, verbose) for node in self.N)
+		
 		elif engine == 'cython':
-			poolresult = Parallel(n_jobs=n_jobs,verbose=verbose)(delayed(_cy_single_source_shortest_distances)(node, self.N, self.E, self.neighbours, operators, verbose) for node in self.N)
+			# cython uses its own sum and max functions. So let's just pass their names.
+			operators = (operators[0].__name__ , operators[1].__name__)
+			#
+			poolresults = range(len(self.N))
+			for node in self.N:
+				poolresults[node] = _cy_single_source_shortest_distances(node, self.N, self.E, self.neighbours, operators, verbose)
+
 		# PoolResults returns a tuple, separate the two variables
-		shortest_distances, local_paths = map(list, zip(*poolresult))
+		shortest_distances, local_paths = map(list, zip(*poolresults))
 
 		# Then turn them into dict-of-dicts
 		self.shortest_distances = dict(zip(self.N, shortest_distances))
@@ -132,7 +141,10 @@ class Dijkstra(object):
 		if engine == 'python':
 			poolresults = Parallel(n_jobs=n_jobs,verbose=verbose)(delayed(_py_single_source_complete_paths)(node, self.N, self.local_paths[node]) for node in self.N)
 		elif engine == 'cython':
-			poolresults = Parallel(n_jobs=n_jobs,verbose=verbose)(delayed(_cy_single_source_complete_paths)(node, self.N, self.local_paths[node]) for node in self.N)
+			#
+			poolresults = range(len(self.N))
+			for node in self.N:
+				poolresults[node] = _cy_single_source_complete_paths(node, self.N, self.local_paths[node])
 
 		# PoolResults returns a list, map into a dict of nodes
 		self.shortest_paths = dict( zip( self.N , poolresults ) )
@@ -166,6 +178,7 @@ class Dijkstra(object):
 		if engine == 'python':
 			shortest_distances, local_paths = _py_single_source_shortest_distances(source, self.N, self.E, self.neighbours, operators)
 		elif engine == 'cython':
+			operators = (operators[0].__name__ , operators[1].__name__)
 			shortest_distances, local_paths = _cy_single_source_shortest_distances(source, self.N, self.E, self.neighbours, operators)
 
 		# Save to object
@@ -288,10 +301,12 @@ class Dijkstra(object):
 		if matrix.shape[0] != matrix.shape[1]:
 			raise ValueError('Adjacency Matrix not square')
 
+		#matrix = matrix.A
+
 		N = list( np.arange(matrix.shape[0]) )
 		for i, row in enumerate(matrix,start=0):
 			neighbours[i] = []
-			for j, value in enumerate(row,start=0):				
+			for j, value in enumerate(row,start=0):
 				# the diagonal is (must be) always zero (distance = 0)
 				if i==j:
 					continue

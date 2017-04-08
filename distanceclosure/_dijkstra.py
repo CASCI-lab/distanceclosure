@@ -63,9 +63,6 @@ def _py_single_source_shortest_distances(source, N, E, neighbors, operators=(min
 		if node in visited_nodes:
 			continue
 		
-		if verbose > 1:
-			print '-Node:',node, '| node distance:', node_dist
-
 		# Iterate over all neighbors of node 
 		for neighbor in neighbors[node]:
 			
@@ -75,9 +72,6 @@ def _py_single_source_shortest_distances(source, N, E, neighbors, operators=(min
 
 			# the edge distance/weight/cost
 			weight = E[ (node, neighbor) ]
-
-			if verbose > 2:
-				print 'neighbors:',neighbor , '| weight:', weight
 			
 			# Operation to decide how to compute the lenght, summing edges (metric) or taking the max (ultrametric)
 			new_dist = conjf([node_dist, weight])

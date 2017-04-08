@@ -1,7 +1,13 @@
 from distanceclosure.dijkstra import Dijkstra
+from distanceclosure._dijkstra import _py_single_source_shortest_distances, _py_single_source_complete_paths
+from distanceclosure.cython._dijkstra import _cy_single_source_shortest_distances, _cy_single_source_complete_paths
+#
 from distanceclosure.utils import prox2dist
 import numpy as np
 import networkx as nx
+from time import time
+import warnings
+import random
 #
 # Test
 #
@@ -81,5 +87,38 @@ def test_dijkstra_vs_networkx_apsp():
 	dc_all_complete_paths_translated = d.get_shortest_paths(translate=True)
 
 	assert (nx_all_complete_paths == dc_all_complete_paths_translated)
+
+def test_timeit_cy_py_dijkstra_apsp():
+	""" Time-Test Cython and Python Dijkstra """
+	random.seed(1)
+	n = 500
+	G = nx.barabasi_albert_graph(n=n,m=2,seed=1)
+	#nx.set_edge_attributes(G, 'weight', {(s,t):0.5 for s in xrange(n) for t in xrange(n) if s!=t})
+
+	P = nx.to_numpy_matrix(G).A
+	P[P!=0] = 0.5
+	D = prox2dist(P)
+	d = Dijkstra.from_numpy_matrix(D, directed=False)
+	#
+	"""
+	py_init_time = time()
+	for node in d.N:
+		_py_single_source_shortest_distances(node, d.N, d.E, d.neighbours, (min,sum), verbose=10)
+	py_end_time = time()
+	py_time = py_end_time - py_init_time
+	"""
+	#
+	cy_init_time = time()
+	for node in d.N:
+		_cy_single_source_shortest_distances(node, d.N, d.E, d.neighbours, ('min','sum'), verbose=10)
+	cy_end_time = time()
+	cy_time = cy_end_time - cy_init_time
+
+	#print 'Python Dijkstra time: %s' % (py_time)
+	print 'Cython Dijkstra time: %s' % (cy_time)
+
+
+	assert (1==2)
+
 
 
