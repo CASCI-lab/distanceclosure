@@ -3,29 +3,23 @@
 Transitive closure
 ===================
 
-Computes transitive closure on a graph Adjacency Matrix.
+Computes transitive closure on a network.
 
 These algorithms work with undirected weighted (distance) graphs.
 """
-#    Copyright (C) 2015 by
-#    Luis Rocha <rocha@indiana.edu>
-#    Thiago Simas <@.>
-#    Rion Brattig Correia <rionbr@gmail.com>
-#    All rights reserved.
-#    MIT license.
 import numpy as np
-import scipy.sparse as ssp
-from .dijkstra import Dijkstra
+import networkx as nx
+from distanceclosure.dijkstra import all_pairs_dijkstra_path_length
 __name__ = 'distanceclosure'
 __author__ = """\n""".join(['Luis Rocha <rocha@indiana.com>',
                             'Thiago Simas <@.>',
                             'Rion Brattig Correia <rionbr@gmail.com>'])
-__all__ = ['transitive_closure']
-__metrics__ = ['metric', 'ultrametric']
+
+__kinds__ = ['metric', 'ultrametric']
 __algorithms__ = ['dense', 'dijkstra']
 
 
-def transitive_closure(D, kind='metric', algorithm='dense', *args, **kwargs):
+def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', verbose=False, *args, **kwargs):
     """
     Compute the transitive closure (All-Pairs-Shortest-Paths; APSP) using different shortest path measures
     on the distance graph (adjacency matrix) with values in the ``[0,inf]`` interval.
@@ -34,42 +28,18 @@ def transitive_closure(D, kind='metric', algorithm='dense', *args, **kwargs):
         c_{ij} = min_{k}( metric ( a_{ik} , b_{kj} ) )
 
     Args:
-        D (matrix or dict): The [D]istance matrix. Accepted formats for kind ``dense`` is a numpy array; for ``dijkstra`` is a either a numpy array, a scipy sparse matrix or edgelist dictionary.
+        D (networkx.Graph): The [D]istance matrix.
         kind (string): type of closure to compute: ``metric`` or ``ultrametric``.
         algorithm (string): type of algorithm to use: ``dense`` or ``dijkstra``.
+        weight (string): Edge property containing distance values. Defaults to 'weight'.
         verbose (bool): Prints statements as it computes.
 
     Returns:
-        C (matrix or dict): transitive closure dense matrix or a edgelist dictionary, depending on input
+        C (networkx.Graph): The distance closure graph. Note this may be a fully connected graph.
 
     Examples:
 
-        >>> # using dense matrix
-        >>> P = np.array([
-            [1.,.9,.1,0.],
-            [.9,1.,.8,0.],
-            [.1,.8,1.,.6],
-            [0.,0.,.6,1.],
-            ], dtype=float)
-        >>> D = prox2dist(P)
-        >>> transitive_closure(D, kind='metric', algorithm='dense', verbose=True)
-            [ 0. ,.11111111, 0.36111111, 1.02777778],
-            [ 0.11111111, 0., 0.25, 0.91666667],
-            [ 0.36111111, 0.25, 0., 0.66666667],
-            [ 1.02777778, 0.91666667, 0.66666667,  0.]
-
-        >>> # using an edgelist
-        >>> D = {
-            ('a','b'): 0.11111111,
-            ('a','c'): 9.,
-            ('b','c'): 0.25,
-            ('c','d'): 0.66666667,
-        }
-        >>> transitive_closure(D, kind='metric', algorithm='dijkstra', verbose=True)
-
-        >>> # using a sparse matrix
-        >>> Dsp = csr_matrix(D)
-        >>> transitive_closure(Dsp, kind='metric', algorithm='dijkstra', verbose=True)
+        >>> distance_closure(D, kind='metric', algorithm='dijkstra', verbose=True)
 
     Note:
         Dense matrix is slow for large graphs. If your network is large and/or sparse, use Dijkstra.
@@ -83,42 +53,51 @@ def transitive_closure(D, kind='metric', algorithm='dense', *args, **kwargs):
         .. math::
 
                 [ 1 + \\sum_{i=2}^{n-1} log k(v_i) ]^{-1}
-
-
     """
-    _check_for_metric_type(kind)
+    _check_for_kind(kind)
     _check_for_algorithm(algorithm)
 
-    # Algorithm - Dense
+    G = D.copy()
+
+    # Dense
     if algorithm == 'dense':
 
-        # Numpy object
-        if (type(D).__module__ == np.__name__):
-            return _transitive_closure_dense_numpy(D, kind, *args, **kwargs)
-
-        else:
-            raise TypeError("Input is not a numpy object.")
+        raise NotImplementedError('Needs some fine tunning.')
+        #M = nx.to_numpy_matrix(D, *args, **kwargs)
+        #return _transitive_closure_dense_numpy(M, kind, *args, **kwargs)
 
     # Dijkstra
     elif algorithm == 'dijkstra':
 
-        # Numpy object
-        if (type(D).__module__ == np.__name__):
-            dij = Dijkstra.from_numpy_matrix(D, *args, **kwargs)
+        if kind == 'metric':
+            disjunction = sum
+        elif kind == 'ultrametric':
+            disjunction = max
 
-        # Edgelist object
-        elif (isinstance(D, dict)):
-            dij = Dijkstra.from_edgelist(D, *args, **kwargs)
+        edges_seen = set()
+        i = 1
+        total = G.number_of_nodes()
+        # APSP
+        for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, disjunction=disjunction):
+            if verbose:
+                per = i / total
+                print("Closure: Dijkstra : {kind:s} : source node {u:s} : {i:d} of {total:d} ({per:.2%})".format(kind=kind, u=u, i=i, total=total, per=per))
+            for v, length in lengths.items():
 
-        # Sparse Matrix
-        elif (ssp.issparse(D)):
-            dij = Dijkstra.from_sparse_matrix(D, *args, **kwargs)
+                if (u, v) in edges_seen or u == v:
+                    continue
+                else:
+                    edges_seen.add((u, v))
+                    kind_distance = '{kind:s}_distance'.format(kind=kind)
+                    is_kind = 'is_{kind:s}'.format(kind=kind)
+                    if not G.has_edge(u, v):
+                        G.add_edge(u, v, **{'distance': np.inf, kind_distance: length})
+                    else:
+                        G[u][v][kind_distance] = length
+                        G[u][v][is_kind] = True if (length == G[u][v][weight]) else False
+            i += 1
 
-        else:
-            raise TypeError("Invalid Input. For the Dijkstra algorithm, input must be `Numpy matrix`, `Scipy Sparse Matrix` or `Edgelist dict`")
-
-        dij.all_pairs_shortest_distances(kind=kind, *args, **kwargs)
-        return dij.get_shortest_distances(format='sparse')
+    return G
 
 
 def _transitive_closure_dense_numpy(A, kind='metric', verbose=False):
@@ -149,11 +128,11 @@ def _transitive_closure_dense_numpy(A, kind='metric', verbose=False):
     return np.array(C)
 
 
-def _check_for_metric_type(kind):
+def _check_for_kind(kind):
     """
     Check for available metric functions.
     """
-    if kind not in __metrics__:
+    if kind not in __kinds__:
         raise TypeError("Metric not found for this algorithm. Try 'metric' or 'ultrametric',")
 
 
@@ -165,50 +144,48 @@ def _check_for_algorithm(algorithm):
         raise TypeError("Algorithm implementation not supported. Try 'dense', 'dijkstra' or leave blank.")
 
 
-def S_measure(D, Cm):
+def s_values(Cm, weight_distance='distance', weight_metric_distance='metric_distance'):
     """
-    Computes the S measure for each network edge.
-    The S measure is the ratio between the direct distance (from the original graph) and the indirect distance (from the metric closure graph).
+    Computes s-values for each network edge.
+    The s-value is the ratio between the direct distance (from the original graph) and the indirect distance (from the metric distance closure graph).
     The formal definition is as follow:
 
     .. math::
         s_{ij} = d_{ij} / d_{ij}^m.
 
     Args:
-        D (matrix): The [D]istance matrix.
-        Cm (matrix): The Metric [C]losure matrix.
-
-    Note:
-        Both arguments must be numpy arrays as the Metric Closure network is a dense matrix.
+        Cm (networkx.Graph): The metric distance closure graph.
+        weight_distance (string): Edge attribute containing distance values. Defaults to 'distance'.
+        weight_metric_distance (string): Edge attribute containing metric distance values. Defaults to 'metric_distance'.
     """
+    G = Cm.copy()
+    #
+    dict_s_values = {
+        (i, j): d.get(weight_distance) / d.get(weight_metric_distance)
+        for i, j, d in G.edges(data=True)
+        if ((d.get(weight_distance) < np.inf) and (d.get(weight_metric_distance) > 0))
+    }
+    nx.set_edge_attributes(G, name='s-value', values=dict_s_values)
 
-    # Assert both are numpy arrays
-    if (type(D).__module__ != np.__name__) or (type(Cm).__module__ != np.__name__):
-        raise TypeError("Both D and Cm must be Numpy objects.")
-
-    # Item-wise division
-    S = D / Cm
-    # For edges where the distance is infite, set it to NAN
-    S[D == np.inf] = np.nan
-
-    return S
+    return G
 
 
-def B_measure(D, Cm, verbose=False):
+def b_values(Cm, weight_distance='distance', weight_metric_distance='metric_distance'):
     """
-    Computes the B measure for each network edge with infinite distance, thus not existing in the original Distance graph.
+    Computes b-values for each edge with infinite distance, thus not existing in the original distance graph.
     The formal definition is as follow:
 
     .. math::
         b_{ij} = <d_{ik}> / d_{ij}^m
         b_{ji} = <d_{jk}> / d_{ij}^m
 
-    which is the average distance of all edges that leaves from node `x_i`, divided by its new closure distance.
-    Also note that `b_{ij}` can be different from `b_{ji}`.
+    which is the average distance of all edges that leaves from node `x_i`, divided by its metric distance closure.
+    Note that `b_{ij}` can be different from `b_{ji}`.
 
     Args:
-        D (matrix): The [D]istance adjacency matrix.
-        Cm (matrix): The Metric [C]losure adjacency matrix.
+        Cm (networkx.Graph): The metric distance closure graph.
+        weight_distance (string): Edge attribute containing distance values. Defaults to 'distance'.
+        weight_metric_distance (string): Edge attribute containing metric distance values. Defaults to 'metric_distance'.
 
     Note:
         Both arguments must be numpy arrays as the Metric Closure network is a dense matrix.
@@ -216,22 +193,27 @@ def B_measure(D, Cm, verbose=False):
     Warning:
         This computation takes a while.
     """
-    D = D.copy()
+    G = Cm.copy()
 
-    B = np.empty(shape=D.shape)
+    mean_distance = {
+        k: np.mean([d.get(weight_distance) for i, j, d in G.edges(nbunch=k, data=True) if d.get(weight_distance, None) < np.inf])
+        for k in G.nodes()
+    }
+    print(mean_distance)
 
-    # Get edges that are INF
-    rows, cols = np.where(D == np.inf)
+    dict_b_ij_values = {
+        (i, j): mean_distance[i] / d.get(weight_metric_distance)
+        for i, j, d in G.edges(data=True)
+        if (d.get(weight_distance) == np.inf)
+    }
+    nx.set_edge_attributes(G, name='b_ij-value', values=dict_b_ij_values)
 
-    # Transform INF to NAN so we can ignore it on averaging
-    D[D == np.inf] = np.nan
-    means = np.nanmean(D, axis=1)
+    print('> b_ji')
+    dict_b_ji_values = {
+        (i, j): mean_distance[j] / d.get(weight_metric_distance)
+        for i, j, d in G.edges(data=True)
+        if (d.get(weight_distance) == np.inf)
+    }
+    nx.set_edge_attributes(G, name='b_ji-value', values=dict_b_ji_values)
 
-    for i, (row, col) in enumerate(zip(rows, cols)):
-        B[row, col] = means[row] / float(Cm[row, col])
-
-        if verbose:
-            if i % 10000 == 0 and i > 0:
-                print(i, 'of', len(rows))
-
-    return B
+    return G

@@ -1,5 +1,7 @@
 # Specific Files
+.DS_Store
 distanceclosure/notest.py
+experiments/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
