@@ -199,7 +199,6 @@ def b_values(Cm, weight_distance='distance', weight_metric_distance='metric_dist
         k: np.mean([d.get(weight_distance) for i, j, d in G.edges(nbunch=k, data=True) if d.get(weight_distance, None) < np.inf])
         for k in G.nodes()
     }
-    print(mean_distance)
 
     dict_b_ij_values = {
         (i, j): mean_distance[i] / d.get(weight_metric_distance)
@@ -208,7 +207,6 @@ def b_values(Cm, weight_distance='distance', weight_metric_distance='metric_dist
     }
     nx.set_edge_attributes(G, name='b_ij-value', values=dict_b_ij_values)
 
-    print('> b_ji')
     dict_b_ji_values = {
         (i, j): mean_distance[j] / d.get(weight_metric_distance)
         for i, j, d in G.edges(data=True)
