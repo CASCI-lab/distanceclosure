@@ -91,7 +91,7 @@ def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', ve
                     kind_distance = '{kind:s}_distance'.format(kind=kind)
                     is_kind = 'is_{kind:s}'.format(kind=kind)
                     if not G.has_edge(u, v):
-                        G.add_edge(u, v, **{'distance': np.inf, kind_distance: length})
+                        G.add_edge(u, v, **{weight: np.inf, kind_distance: length})
                     else:
                         G[u][v][kind_distance] = length
                         G[u][v][is_kind] = True if (length == G[u][v][weight]) else False
