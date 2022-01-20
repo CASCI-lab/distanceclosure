@@ -21,17 +21,12 @@ D = D_true = np.array([
 #
 def test_prox2dist():
     """ Test Utils: Prox2Dist """
-    assert np.isclose(dist2prox(D), P_true).all()
+    assert np.isclose(np.vectorize(dist2prox)(D), P_true).all()
 
 
 def test_dist2prox():
     """ Test Utils: Dist2Prox """
-    assert np.isclose(prox2dist(P), D_true).all()
-
-
-def test_dist2prox_prox2dist():
-    """ Test Utils: Prox2Dist & Dist2Prox """
-    assert np.isclose(dist2prox(prox2dist(P)), P).all()
+    assert np.isclose(np.vectorize(prox2dist)(P), D_true).all()
 
 
 #

@@ -19,7 +19,7 @@ __kinds__ = ['metric', 'ultrametric']
 __algorithms__ = ['dense', 'dijkstra']
 
 
-def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', verbose=False, *args, **kwargs):
+def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', only_backbone=False, verbose=False, *args, **kwargs):
     """
     Compute the transitive closure (All-Pairs-Shortest-Paths; APSP) using different shortest path measures
     on the distance graph (adjacency matrix) with values in the ``[0,inf]`` interval.
@@ -32,6 +32,7 @@ def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', ve
         kind (string): type of closure to compute: ``metric`` or ``ultrametric``.
         algorithm (string): type of algorithm to use: ``dense`` or ``dijkstra``.
         weight (string): Edge property containing distance values. Defaults to 'weight'.
+        only_backbone (bool): Only include new distance closure values for edges in the original graph.
         verbose (bool): Prints statements as it computes.
 
     Returns:
@@ -60,7 +61,7 @@ def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', ve
     G = D.copy()
 
     # Dense
-    if algorithm == 'dense':
+    if w == 'dense':
 
         raise NotImplementedError('Needs some fine tunning.')
         #M = nx.to_numpy_matrix(D, *args, **kwargs)
@@ -91,7 +92,8 @@ def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', ve
                     kind_distance = '{kind:s}_distance'.format(kind=kind)
                     is_kind = 'is_{kind:s}'.format(kind=kind)
                     if not G.has_edge(u, v):
-                        G.add_edge(u, v, **{weight: np.inf, kind_distance: length})
+                        if not only_backbone:
+                            G.add_edge(u, v, **{weight: np.inf, kind_distance: length})
                     else:
                         G[u][v][kind_distance] = length
                         G[u][v][is_kind] = True if (length == G[u][v][weight]) else False
