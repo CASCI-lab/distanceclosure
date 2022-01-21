@@ -61,7 +61,7 @@ def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', on
     G = D.copy()
 
     # Dense
-    if w == 'dense':
+    if algorithm == 'dense':
 
         raise NotImplementedError('Needs some fine tunning.')
         #M = nx.to_numpy_matrix(D, *args, **kwargs)
