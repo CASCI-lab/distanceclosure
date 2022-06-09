@@ -173,6 +173,7 @@ def from_networkx_to_dijkstra_format(G, weight='weight'):
         raise NotImplementedError("This is on the TODO list. For now, only undirected nx.Graphs() are accepted.")
 
     dict_nodes_int = {u: i for i, u in enumerate(G.nodes())}
+    dict_int_nodes = {i: u for u, i in dict_nodes_int.items()}
 
     nodes = list(dict_nodes_int.values())
 
@@ -183,4 +184,4 @@ def from_networkx_to_dijkstra_format(G, weight='weight'):
 
     neighbors = {dict_nodes_int[i]: [dict_nodes_int[j] for j in G.neighbors(i)] for i in G.nodes()}
 
-    return nodes, edges, neighbors
+    return nodes, edges, neighbors, dict_int_nodes
