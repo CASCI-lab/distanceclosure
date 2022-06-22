@@ -1,0 +1,3 @@
+
+.. automodule:: distanceclosure.dijkstra
+	:members:

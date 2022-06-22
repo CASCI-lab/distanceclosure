@@ -1,0 +1,368 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Transitive Closure &#8212; Distance Closure 0.4.1 documentation</title>
+<script>
+  document.documentElement.dataset.mode = localStorage.getItem("mode") || "light";
+  document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"
+</script>
+
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=92025949c220c2e29695" rel="stylesheet">
+
+
+  <link rel="stylesheet"
+    href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695">
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Dijkstra: shortest path algorithm for weighted graphs" href="dijkstra.html" />
+    <link rel="prev" title="API Reference" href="index.html" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="docsearch:language" content="None">
+  </head>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="light">
+    <div class="bd-header-announcement container-fluid" id="banner">
+      
+
+    </div>
+
+    
+    <nav class="bd-header navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="bd-header__inner container-xl">
+
+  <div id="navbar-start">
+    
+    
+  
+
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">Distance Closure 0.4.1 documentation</p>
+  
+</a>
+    
+  </div>
+
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="fas fa-bars"></span>
+  </button>
+
+  
+  <div id="navbar-collapsible" class="col-lg-9 collapse navbar-collapse">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <ul id="navbar-main-elements" class="navbar-nav">
+    <li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="../install.html">
+  Installation
+ </a>
+</li>
+
+<li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="../tutorial.html">
+  Tutorials
+ </a>
+</li>
+
+<li class="toctree-l1 current active nav-item">
+ <a class="reference internal nav-link" href="index.html">
+  API Reference
+ </a>
+</li>
+
+<li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="../development.html">
+  Development
+ </a>
+</li>
+
+<li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="../bibliography.html">
+  Bibliography
+ </a>
+</li>
+
+    
+</ul>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      
+      <div class="navbar-end-item">
+        <span id="theme-switch" class="btn btn-sm btn-outline-primary navbar-btn rounded-circle">
+    <a class="theme-switch" data-mode="light"><i class="fas fa-sun"></i></a>
+    <a class="theme-switch" data-mode="dark"><i class="far fa-moon"></i></a>
+    <a class="theme-switch" data-mode="auto"><i class="fas fa-adjust"></i></a>
+</span>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+        <li class="nav-item">
+          <a class="nav-link" href="https://github.com/rionbr/distanceclosure" rel="noopener" target="_blank" title="GitHub"><span><i class="fab fa-github-square"></i></span>
+            <label class="sr-only">GitHub</label></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://twitter.com/rionbr" rel="noopener" target="_blank" title="Twitter"><span><i class="fab fa-twitter-square"></i></span>
+            <label class="sr-only">Twitter</label></a>
+        </li>
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+</div>
+    </nav>
+    
+
+    <div class="bd-container container-xl">
+      <div class="bd-container__inner row">
+          
+
+<!-- Only show if we have sidebars configured, else just a small margin  -->
+<div class="bd-sidebar-primary col-12 col-md-3 bd-sidebar">
+  <div class="sidebar-start-items"><form class="bd-search d-flex align-items-center" action="../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+  <div class="bd-toc-item active">
+    <ul class="current nav bd-sidenav">
+ <li class="toctree-l1 current active">
+  <a class="current reference internal" href="#">
+   Transitive Closure
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="dijkstra.html">
+   Dijkstra: shortest path algorithm for weighted graphs
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="distance.html">
+   Pairwise distance
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="utils.html">
+   Utils
+  </a>
+ </li>
+</ul>
+
+  </div>
+</nav>
+  </div>
+  <div class="sidebar-end-items">
+  </div>
+</div>
+
+
+          
+
+
+<div class="bd-sidebar-secondary d-none d-xl-block col-xl-2 bd-toc">
+  
+    
+    <div class="toc-item">
+      
+
+<nav id="bd-toc-nav">
+    
+</nav>
+    </div>
+    
+    <div class="toc-item">
+      
+    </div>
+    
+  
+</div>
+
+
+          
+          
+          <div class="bd-content col-12 col-md-9 col-xl-7">
+              
+              <article class="bd-article" role="main">
+                
+  <span class="target" id="module-distanceclosure.closure"></span><section id="transitive-closure">
+<h1>Transitive Closure<a class="headerlink" href="#transitive-closure" title="Permalink to this headline">#</a></h1>
+<p>Computes transitive closure on a weighted graph.
+These algorithms work with undirected weighted (distance) graphs.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="distanceclosure.closure.distance_closure">
+<span class="sig-prename descclassname"><span class="pre">distanceclosure.closure.</span></span><span class="sig-name descname"><span class="pre">distance_closure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">D</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'metric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'dijkstra'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'weight'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_backbone</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#distanceclosure.closure.distance_closure" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes the transitive closure (All-Pairs-Shortest-Paths; APSP)
+using different shortest path measures on the distance graph
+(adjacency matrix) with values in the <code class="docutils literal notranslate"><span class="pre">[0,inf]</span></code> interval.</p>
+<div class="math notranslate nohighlight">
+\[c_{ij} = min_{k}( metric ( a_{ik} , b_{kj} ) )\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>D</strong> (<em>NetworkX.Graph</em>) – The Distance graph.</p></li>
+<li><p><strong>kind</strong> (<em>string</em>) – Type of closure to compute: <code class="docutils literal notranslate"><span class="pre">metric</span></code> or <code class="docutils literal notranslate"><span class="pre">ultrametric</span></code>.</p></li>
+<li><p><strong>algorithm</strong> (<em>string</em>) – Type of algorithm to use: <code class="docutils literal notranslate"><span class="pre">dense</span></code> or <code class="docutils literal notranslate"><span class="pre">dijkstra</span></code>.</p></li>
+<li><p><strong>weight</strong> (<em>string</em>) – Edge property containing distance values. Defaults to <cite>weight</cite>.</p></li>
+<li><p><strong>only_backbone</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Only include new distance closure values for edges in the original graph.</p></li>
+<li><p><strong>Verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Prints statements as it computes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>C</strong> – The distance closure graph. Note this may be a fully connected graph.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>NetworkX.Graph</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">distance_closure</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;metric&#39;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s1">&#39;dijkstra&#39;</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="n">only_backbone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Dense matrix is slow for large graphs.
+We are currently working on optimizing it.
+If your network is large and/or sparse, use the Dijkstra method.</p>
+<ul class="simple">
+<li><p>Metric: <span class="math notranslate nohighlight">\((min,+)\)</span></p></li>
+<li><p>Ultrametric: <span class="math notranslate nohighlight">\((min,max)\)</span> – also known as maximum flow.</p></li>
+<li><p>Semantic proximity: (to be implemented)</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[[ 1 + \sum_{i=2}^{n-1} log k(v_i) ]^{-1}\]</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="distanceclosure.closure.s_values">
+<span class="sig-prename descclassname"><span class="pre">distanceclosure.closure.</span></span><span class="sig-name descname"><span class="pre">s_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'distance'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_metric_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'metric_distance'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#distanceclosure.closure.s_values" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes s-values for each network edge.
+The s-value is the ratio between the direct distance (from the original graph) and the indirect distance (from the metric distance closure graph).
+The formal definition is as follow:</p>
+<div class="math notranslate nohighlight">
+\[s_{ij} = d_{ij} / d_{ij}^m.\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Cm</strong> (<em>networkx.Graph</em>) – The metric distance closure graph.</p></li>
+<li><p><strong>weight_distance</strong> (<em>string</em>) – Edge attribute containing distance values. Defaults to ‘distance’.</p></li>
+<li><p><strong>weight_metric_distance</strong> (<em>string</em>) – Edge attribute containing metric distance values. Defaults to ‘metric_distance’.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="distanceclosure.closure.b_values">
+<span class="sig-prename descclassname"><span class="pre">distanceclosure.closure.</span></span><span class="sig-name descname"><span class="pre">b_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'distance'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_metric_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'metric_distance'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#distanceclosure.closure.b_values" title="Permalink to this definition">#</a></dt>
+<dd><p>Computes b-values for each edge with infinite distance, thus not existing in the original distance graph.
+The formal definition is as follow:</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}b_{ij} = &lt;d_{ik}&gt; / d_{ij}^m\\b_{ji} = &lt;d_{jk}&gt; / d_{ij}^m\end{aligned}\end{align} \]</div>
+<p>which is the average distance of all edges that leaves from node <cite>x_i</cite>, divided by its metric distance closure.
+Note that <cite>b_{ij}</cite> can be different from <cite>b_{ji}</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>networkx.Graph</strong><strong>)</strong> (<em>Cm</em>) – </p></li>
+<li><p><strong>(</strong><strong>string</strong><strong>)</strong> (<em>weight_metric_distance</em>) – </p></li>
+<li><p><strong>(</strong><strong>string</strong><strong>)</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Both arguments must be numpy arrays as the Metric Closure network is a dense matrix.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This computation takes a while.</p>
+</div>
+</dd></dl>
+
+</section>
+
+
+              </article>
+              
+
+              
+              <footer class="bd-footer-article">
+                  <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+  <a class='left-prev' id="prev-link" href="index.html" title="previous page">
+      <i class="fas fa-angle-left"></i>
+      <div class="prev-next-info">
+          <p class="prev-next-subtitle">previous</p>
+          <p class="prev-next-title">API Reference</p>
+      </div>
+  </a>
+  <a class='right-next' id="next-link" href="dijkstra.html" title="next page">
+  <div class="prev-next-info">
+      <p class="prev-next-subtitle">next</p>
+      <p class="prev-next-title">Dijkstra: shortest path algorithm for weighted graphs</p>
+  </div>
+  <i class="fas fa-angle-right"></i>
+  </a>
+</div>
+              </footer>
+              
+          </div>
+          
+      </div>
+    </div>
+
+  
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/pydata-sphinx-theme.js?digest=92025949c220c2e29695"></script>
+
+<footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    <p class="copyright">
+    &copy; Copyright 2022.<br>
+</p>
+  </div>
+  
+  <div class="footer-item">
+    <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.2.0.<br>
+</p>
+  </div>
+  
+</div>
+</footer>
+  </body>
+</html>
