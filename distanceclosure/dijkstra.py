@@ -1,13 +1,22 @@
+# -*- coding: utf-8 -*-
 """
-(Custom) Shortest path algorithms for weighed graphs.
-Adapted from NetworkX
+Dijkstra: shortest path algorithm for weighted graphs
+=====================================================
+
+These methods are used for the computation of shortest paths on weighted graphs and were adapted from the Networkx (``networkx.algorithms.shortest_paths.weighted``) implementation.
 """
 
 from heapq import heappush, heappop
 from itertools import count
 import networkx as nx
 from networkx.algorithms.shortest_paths.weighted import _weight_function
+__name__ = 'distanceclosure'
+__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
 
+__all__ = [
+    "all_pairs_dijkstra_path_length",
+    "single_source_dijkstra_path_length"
+]
 
 def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
     """Compute shortest path lengths between all nodes in a weighted graph.
@@ -17,17 +26,17 @@ def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
     G : NetworkX graph
 
     weight : string or function
-       If this is a string, then edge weights will be accessed via the
-       edge attribute with this key (that is, the weight of the edge
-       joining `u` to `v` will be ``G.edges[u, v][weight]``). If no
-       such edge attribute exists, the weight of the edge is assumed to
-       be one.
+        If this is a string, then edge weights will be accessed via the
+        edge attribute with this key (that is, the weight of the edge
+        joining `u` to `v` will be ``G.edges[u, v][weight]``). If no
+        such edge attribute exists, the weight of the edge is assumed to
+        be one.
 
-       If this is a function, the weight of an edge is the value
-       returned by the function. The function must accept exactly three
-       positional arguments: the two endpoints of an edge and the
-       dictionary of edge attributes for that edge. The function must
-       return a number.
+        If this is a function, the weight of an edge is the value
+        returned by the function. The function must accept exactly three
+        positional arguments: the two endpoints of an edge and the
+        dictionary of edge attributes for that edge. The function must
+        return a number.
 
     disjunction: function (default=sum)
         Whether to sum paths or use the max value.
@@ -55,7 +64,7 @@ def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
     >>> length[2][2]
     0
 
-    Notes
+    Note
     -----
     Edge weight attributes must be numerical.
     Distances are calculated as sums of weighted edges traversed.
@@ -99,7 +108,7 @@ def single_source_dijkstra_path_length(G, source, weight_function, paths=None, d
     NodeNotFound
         If `source` is not in `G`.
 
-    Notes
+    Note
     -----
     The optional predecessor and path dictionaries can be accessed by
     the caller through the original paths objects passed

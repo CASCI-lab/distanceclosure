@@ -8,9 +8,7 @@ API Reference
 .. toctree::
    :maxdepth: 2
 	
-   distance
    closure
-   backbone
    dijkstra
-   fuzzylogic
+   distance
    utils

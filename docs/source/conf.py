@@ -39,18 +39,25 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
-    'sphinx.ext.mathbase',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'sphinxcontrib.googleanalytics',
-    'sphinxtogithub',
+    'sphinxcontrib.bibtex',
+    #'sphinxcontrib.googleanalytics',
+    #'sphinxtogithub',
 
 ]
 
 # Google Analytcis
 googleanalytics_id = 'UA-71404006-1'
+
+# bibtex configuration
+bibtex_bibfiles = ['refs.bib']
+bibtex_default_style = 'plain'
+bibtex_reference_style = 'label'
+
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
 # Napoleon settings
 napoleon_google_docstring = True
@@ -72,7 +79,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Distance Closure'
-copyright = u'2015, Rocha, L. M., Simas, T. & Correia, R. B.'
+copyright = u'2022'
 author = u'Rion Brattig Correia'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -128,17 +135,41 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
+# Do not sort methods alphabetically
+autodoc_member_order = 'bysource'
+
 
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'pydata_sphinx_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+html_theme_options = {
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/rionbr/distanceclosure",
+            "icon": "fab fa-github-square",
+            "type": "fontawesome",
+        },
+        {
+            "name": "Twitter",
+            "url": "https://twitter.com/rionbr",
+            "icon": "fab fa-twitter-square",
+            # The default for `type` is `fontawesome` so it is not actually required in any of the above examples as it is shown here
+        },
+    ],
+    # "pygment_light_style": "gruvbox-light",
+    "pygment_dark_style": "monokai"
+}
+
+html_context = {
+   "default_mode": "light"
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
@@ -162,7 +193,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

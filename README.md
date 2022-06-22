@@ -48,7 +48,7 @@ How to calculate Closure and retrieve the metric backbone of a weighted distance
         ('f', 'g'): 0,
     }
     G = nx.from_edgelist(edgelist)
-    # Make sure there an edge attribute with the distance value
+    # Make sure every edge has an attribute with the distance value
     nx.set_edge_attributes(G, name='distance', values=edgelist)
 
     # Compute closure (note this will be a fully connected graph. It can be slow for large graphs)

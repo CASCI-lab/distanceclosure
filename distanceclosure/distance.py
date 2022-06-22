@@ -3,13 +3,9 @@
 Pairwise distance
 ====================
 
-Computes the Jaccard proximity over a matrix
-
+Computes the Jaccard proximity over a matrix.
 """
-#    Copyright (C) 2015 by
-#    Rion Brattig Correia <rionbr@gmail.com>
-#    All rights reserved.
-#    MIT license.
+
 import numpy as np
 import scipy.sparse as sp
 from scipy.sparse import csr_matrix, lil_matrix
@@ -18,91 +14,108 @@ from itertools import combinations
 import warnings
 
 __author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
-__all__ = ['pairwise_proximity']
-__metrics__ = ['jaccard', 'scipy',  # Numeric Jaccard (scipy.spatial.distance)
-               'jaccard_binary', 'jb',  # Binary Jaccard Coefficient
-               'jaccard_set', 'js',  # Set Comparison Jaccard Coefficient
-               'jaccard_weighted', 'weighted_jaccard', 'wj']  # Weighted Jaccard
+__metrics__ = [
+    'jaccard', 'scipy',  # Numeric Jaccard (scipy.spatial.distance)
+    'jaccard_binary', 'jb',  # Binary Jaccard Coefficient
+    'jaccard_set', 'js',  # Set Comparison Jaccard Coefficient
+    'jaccard_weighted', 'weighted_jaccard', 'wj'  # Weighted Jaccard
+]
 
+__all__ = [
+    'pairwise_proximity'
+]
 
 def pairwise_proximity(M, metric='jaccard', *args, **kwargs):
     """
     Calculates pairwise proximity coefficient between rows of a matrix.
     Three types of Jaccard proximity is available depending on your data.
 
-    Args:
-        M (matrix) : adjacency matrix
-        metric (str) : Jaccard proximity metric
-            Allowed values:
-            - Binary item-wise comparison: ``jaccard_binary``, ``jb``
-            - Numeric item-wise comparison: ``jaccard``, (scipy.spatial.dist.jaccard)
-            - Set comparison: ``jaccard_set``, ``js``
-            - Weighted item-wise comparison: ``weighted_jaccard``, ``wj``
-            - Note: Also accepts a custom function being passed.
-        min_support (Optional[int]) : the minimum support passed to the metric function.
-        verbose (bool) : print every line as it computes.
+    Parameters
+    ----------
+    M : matrix
+        Adjacency matrix
 
-    Returns:
-        M (matrix) : The matrix of proximities
+    metric : str
+        Jaccard proximity metric.
+        Allowed values:
 
-    Examples:
+            - ``jaccard_binary``, ``jb``: binary item-wise comparison.
+            - ``jaccard`` (scipy.spatial.dist.jaccard): numeric item-wise comparison.
+            - ``jaccard_set``, ``js``: set comparison.
+            - ``weighted_jaccard``, ``wj``: weighted item-wise comparison.
 
-        There are four ways to compute the proximity, here are some examples:
+        Note: Also accepts a custom function being passed.
 
-        >>> # Numeric Matrix (not necessarily a network)
-        >>> N = np.array([
-            [2,3,4,2],
-            [2,3,4,2],
-            [2,3,3,2],
-            [2,1,3,4]])
+    min_support : int (Optional)
+        The minimum support passed to the metric function.
 
-        >>> # Binary Adjacency Matrix
-        >>> B = np.array([
-            [1,1,1,1],
-            [1,1,1,0],
-            [1,1,0,0],
-            [1,0,0,0]])
+    verbose : bool
+        Print every line as it computes.
 
-        >>> # Weighted Adjacency Matrix
-        >>> W = np.array([
-            [4,3,2,1],
-            [3,2,1,0],
-            [2,1,0,0],
-            [1,0,0,0]])
+    Returns
+    -------
+    M :matrix
+        The matrix of proximities
+
+    Examples
+    --------
+
+    There are four ways to compute the proximity, here are some examples:
+
+    >>> # Numeric Matrix (not necessarily a network)
+    >>> N = np.array([
+        [2,3,4,2],
+        [2,3,4,2],
+        [2,3,3,2],
+        [2,1,3,4]])
+
+    >>> # Binary Adjacency Matrix
+    >>> B = np.array([
+        [1,1,1,1],
+        [1,1,1,0],
+        [1,1,0,0],
+        [1,0,0,0]])
+
+    >>> # Weighted Adjacency Matrix
+    >>> W = np.array([
+        [4,3,2,1],
+        [3,2,1,0],
+        [2,1,0,0],
+        [1,0,0,0]])
 
 
-        Numeric Jaccard: the default and most commonly used version. Implemented from `scipy.spatial.distance`.
+    Numeric Jaccard: the default and most commonly used version. Implemented from `scipy.spatial.distance`.
 
-        >>> pairwise_proximity(N, metric='jaccard')
-            [[ 1. , 1.  , 0.75, 0.25],
-            [ 1.  , 1.  , 0.75, 0.25],
-            [ 0.75, 0.75, 1.  , 0.5 ],
-            [ 0.25, 0.25, 0.5 , 1.  ]]
+    >>> pairwise_proximity(N, metric='jaccard')
+        [[ 1. , 1.  , 0.75, 0.25],
+        [ 1.  , 1.  , 0.75, 0.25],
+        [ 0.75, 0.75, 1.  , 0.5 ],
+        [ 0.25, 0.25, 0.5 , 1.  ]]
 
-        Binary Jaccard: the default and most commonly used version.
+    Binary Jaccard: the default and most commonly used version.
 
-        >>> pairwise_proximity(B, metric='jaccard_binary')
-            [[ 1. , 0.75, 0.5 , 0.25],
-            [ 0.75, 1.  , 0.66, 0.33],
-            [ 0.5 , 0.66, 1.  , 0.5 ],
-            [ 0.25, 0.33, 0.5 , 1.  ]]
+    >>> pairwise_proximity(B, metric='jaccard_binary')
+        [[ 1. , 0.75, 0.5 , 0.25],
+        [ 0.75, 1.  , 0.66, 0.33],
+        [ 0.5 , 0.66, 1.  , 0.5 ],
+        [ 0.25, 0.33, 0.5 , 1.  ]]
 
-        Set Jaccard: it treats the values in each vector as a set of objects, therefore their order is not taken into account.
-        Note that zeroes are treated as a set item.
+    Set Jaccard: it treats the values in each vector as a set of objects, therefore their order is not taken into account.
+    Note that zeroes are treated as a set item.
 
-        >>> pairwise_proximity(B, metric='jaccard_set')
-            [[ 1., 0.6 , 0.4 , 0.2 ],
-            [ 0.6, 1.  , 0.75, 0.5 ],
-            [ 0.4, 0.75, 1.  , 0.67],
-            [ 0.2, 0.5 , 0.67, 1.  ]]
+    >>> pairwise_proximity(B, metric='jaccard_set')
+        [[ 1., 0.6 , 0.4 , 0.2 ],
+        [ 0.6, 1.  , 0.75, 0.5 ],
+        [ 0.4, 0.75, 1.  , 0.67],
+        [ 0.2, 0.5 , 0.67, 1.  ]]
 
-        Weighted Jaccard: the version for weighted graphs.
+    Weighted Jaccard: the version for weighted graphs.
 
-        >>> pairwise_proximity(W, metric='jaccard_weighted')
-            [ 1.,   0.6,  0.3,  0.1],
-            [ 0.6,  1.,   0.,   0. ],
-            [ 0.3,  0.,   1.,   0. ],
-            [ 0.1,  0.,   0.,   1. ],
+    >>> pairwise_proximity(W, metric='jaccard_weighted')
+        [ 1.,   0.6,  0.3,  0.1],
+        [ 0.6,  1.,   0.,   0. ],
+        [ 0.3,  0.,   1.,   0. ],
+        [ 0.1,  0.,   0.,   1. ],
     """
 
     # Numpy object

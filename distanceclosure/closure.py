@@ -1,59 +1,80 @@
 # -*- coding: utf-8 -*-
 """
-Transitive closure
-===================
+Transitive Closure
+==================
 
-Computes transitive closure on a network.
-
+Computes transitive closure on a weighted graph.
 These algorithms work with undirected weighted (distance) graphs.
 """
+
 import numpy as np
 import networkx as nx
 from distanceclosure.dijkstra import all_pairs_dijkstra_path_length
 __name__ = 'distanceclosure'
-__author__ = """\n""".join(['Luis Rocha <rocha@indiana.com>',
-                            'Thiago Simas <@.>',
-                            'Rion Brattig Correia <rionbr@gmail.com>'])
+__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
+
+__all__ = [
+    "distance_closure",
+    "s_values",
+    "b_values"
+]
+
 
 __kinds__ = ['metric', 'ultrametric']
 __algorithms__ = ['dense', 'dijkstra']
 
 
 def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', only_backbone=False, verbose=False, *args, **kwargs):
-    """
-    Compute the transitive closure (All-Pairs-Shortest-Paths; APSP) using different shortest path measures
-    on the distance graph (adjacency matrix) with values in the ``[0,inf]`` interval.
+    """Computes the transitive closure (All-Pairs-Shortest-Paths; APSP)
+    using different shortest path measures on the distance graph
+    (adjacency matrix) with values in the ``[0,inf]`` interval.
 
     .. math::
+
         c_{ij} = min_{k}( metric ( a_{ik} , b_{kj} ) )
 
-    Args:
-        D (networkx.Graph): The [D]istance matrix.
-        kind (string): type of closure to compute: ``metric`` or ``ultrametric``.
-        algorithm (string): type of algorithm to use: ``dense`` or ``dijkstra``.
-        weight (string): Edge property containing distance values. Defaults to 'weight'.
-        only_backbone (bool): Only include new distance closure values for edges in the original graph.
-        verbose (bool): Prints statements as it computes.
+    Parameters
+    ----------
+    D : NetworkX.Graph
+        The Distance graph.
 
-    Returns:
-        C (networkx.Graph): The distance closure graph. Note this may be a fully connected graph.
+    kind : string
+        Type of closure to compute: ``metric`` or ``ultrametric``.
 
-    Examples:
+    algorithm : string
+        Type of algorithm to use: ``dense`` or ``dijkstra``.
 
-        >>> distance_closure(D, kind='metric', algorithm='dijkstra', verbose=True)
+    weight : string
+        Edge property containing distance values. Defaults to `weight`.
+    
+    only_backbone : bool
+        Only include new distance closure values for edges in the original graph.
+    
+    Verbose :bool
+        Prints statements as it computes.
 
-    Note:
-        Dense matrix is slow for large graphs. If your network is large and/or sparse, use Dijkstra.
+    Returns
+    --------
+    C : NetworkX.Graph
+        The distance closure graph. Note this may be a fully connected graph.
 
-        Metric: :math:`(min,+)`
+    Examples
+    --------
+    >>> distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', only_backbone=True)
 
-        Ultrametric: :math:`(min,max)` -- also known as maximum flow.
+    Note
+    ----
+    Dense matrix is slow for large graphs.
+    We are currently working on optimizing it.
+    If your network is large and/or sparse, use the Dijkstra method.
 
-        Semantic proximity: TODO
+    - Metric: :math:`(min,+)`
+    - Ultrametric: :math:`(min,max)` -- also known as maximum flow.
+    - Semantic proximity: (to be implemented)
 
-        .. math::
+    .. math::
 
-                [ 1 + \\sum_{i=2}^{n-1} log k(v_i) ]^{-1}
+            [ 1 + \\sum_{i=2}^{n-1} log k(v_i) ]^{-1}
     """
     _check_for_kind(kind)
     _check_for_algorithm(algorithm)
@@ -173,27 +194,30 @@ def s_values(Cm, weight_distance='distance', weight_metric_distance='metric_dist
 
 
 def b_values(Cm, weight_distance='distance', weight_metric_distance='metric_distance'):
-    """
-    Computes b-values for each edge with infinite distance, thus not existing in the original distance graph.
+    """Computes b-values for each edge with infinite distance, thus not existing in the original distance graph.
     The formal definition is as follow:
 
     .. math::
         b_{ij} = <d_{ik}> / d_{ij}^m
+
         b_{ji} = <d_{jk}> / d_{ij}^m
 
     which is the average distance of all edges that leaves from node `x_i`, divided by its metric distance closure.
     Note that `b_{ij}` can be different from `b_{ji}`.
 
-    Args:
-        Cm (networkx.Graph): The metric distance closure graph.
-        weight_distance (string): Edge attribute containing distance values. Defaults to 'distance'.
-        weight_metric_distance (string): Edge attribute containing metric distance values. Defaults to 'metric_distance'.
+    Parameters
+    ----------
+    Cm (networkx.Graph): The metric distance closure graph.
+    weight_distance (string): Edge attribute containing distance values. Defaults to 'distance'.
+    weight_metric_distance (string): Edge attribute containing metric distance values. Defaults to 'metric_distance'.
 
-    Note:
-        Both arguments must be numpy arrays as the Metric Closure network is a dense matrix.
+    Note
+    ----
+    Both arguments must be numpy arrays as the Metric Closure network is a dense matrix.
 
-    Warning:
-        This computation takes a while.
+    Warning
+    -------
+    This computation takes a while.
     """
     G = Cm.copy()
 
