@@ -65,7 +65,7 @@ If you are only interested in the metric backbone, you might want to only includ
     C2 = dc.distance_closure(G, kind='metric', weight='distance', only_backbone=True)
 
     C.number_of_edges()
-    > 22
+    > 28
     C2.number_of_edges()
     > 11
 ```
