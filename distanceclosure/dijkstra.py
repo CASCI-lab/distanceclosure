@@ -41,6 +41,10 @@ def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum, cutoff=N
     disjunction: function (default=sum)
         Whether to sum paths or use the max value.
         Use `sum` for metric and `max` for ultrametric.
+    
+    cutoff: int (default=None)
+        Maximum number of connections in the path.
+        If None, compute the entire closure as is the cutoff is the number of nodes.
 
     Returns
     -------
