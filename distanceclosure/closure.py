@@ -11,7 +11,7 @@ import numpy as np
 import networkx as nx
 from distanceclosure.dijkstra import all_pairs_dijkstra_path_length
 __name__ = 'distanceclosure'
-__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
+__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe Xavier Costa <fcosta@binghamton.edu>'])
 
 __all__ = [
     "distance_closure",
@@ -24,7 +24,7 @@ __kinds__ = ['metric', 'ultrametric']
 __algorithms__ = ['dense', 'dijkstra']
 
 
-def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', only_backbone=False, verbose=False, *args, **kwargs):
+def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', only_backbone=False, cutoff=None, verbose=False, *args, **kwargs):
     """Computes the transitive closure (All-Pairs-Shortest-Paths; APSP)
     using different shortest path measures on the distance graph
     (adjacency matrix) with values in the ``[0,inf]`` interval.
@@ -100,7 +100,7 @@ def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', on
         i = 1
         total = G.number_of_nodes()
         # APSP
-        for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, disjunction=disjunction):
+        for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, disjunction=disjunction, cutoff=cutoff):
             if verbose:
                 per = i / total
                 print("Closure: Dijkstra : {kind:s} : source node {u:s} : {i:d} of {total:d} ({per:.2%})".format(kind=kind, u=u, i=i, total=total, per=per))
