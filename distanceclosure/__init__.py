@@ -11,7 +11,7 @@ __copyright__ = u'2020, Correia, R. B., Rocha, L. M.'
 
 __version__ = '0.4.1'
 
-
+from distanceclosure.backbone import *
 from distanceclosure.dijkstra import *
 from distanceclosure.closure import *
 import distanceclosure.utils
