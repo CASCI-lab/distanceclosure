@@ -3,6 +3,10 @@
 distanceclosure/notest.py
 experiments/
 
+# Test files
+sample_net.gpickle
+test_speed.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
