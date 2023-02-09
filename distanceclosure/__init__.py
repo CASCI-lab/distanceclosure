@@ -4,10 +4,11 @@ __description__ = "Distance Closure on Complex Networks"
 
 __author__ = """\n""".join([
     'Rion Brattig Correia <rionbr@gmail.com>',
-    'Luis M. Rocha <rocha@indiana.edu>'
+    'Felipe Xavier Costa <fcosta@binghamton.com>',
+    'Luis M. Rocha <rocha@binghamton.edu>'
 ])
 
-__copyright__ = u'2020, Correia, R. B., Rocha, L. M.'
+__copyright__ = u'2023, Correia, R. B., Costa, F. X., Rocha, L. M.'
 
 __version__ = '0.4.1'
 
