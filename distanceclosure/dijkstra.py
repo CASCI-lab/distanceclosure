@@ -11,14 +11,14 @@ from itertools import count
 import networkx as nx
 from networkx.algorithms.shortest_paths.weighted import _weight_function
 __name__ = 'distanceclosure'
-__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
+__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe Xavier Costa <fcosta@binghamton.edu>'])
 
 __all__ = [
     "all_pairs_dijkstra_path_length",
     "single_source_dijkstra_path_length"
 ]
 
-def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
+def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum, cutoff=None):
     """Compute shortest path lengths between all nodes in a weighted graph.
 
     Parameters
@@ -41,6 +41,10 @@ def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
     disjunction: function (default=sum)
         Whether to sum paths or use the max value.
         Use `sum` for metric and `max` for ultrametric.
+    
+    cutoff: int (default=None)
+        Maximum number of connections in the path.
+        If None, compute the entire closure as is the cutoff is the number of nodes.
 
     Returns
     -------
@@ -73,10 +77,10 @@ def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
     """
     weight_function = _weight_function(G, weight)
     for n in G:
-        yield (n, single_source_dijkstra_path_length(G, source=n, weight_function=weight_function, disjunction=disjunction))
+        yield (n, single_source_dijkstra_path_length(G, source=n, weight_function=weight_function, disjunction=disjunction, cutoff=cutoff))
 
 
-def single_source_dijkstra_path_length(G, source, weight_function, paths=None, disjunction=sum):
+def single_source_dijkstra_path_length(G, source, weight_function, paths=None, disjunction=sum, cutoff=None):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted paths
 
     Parameters
@@ -96,6 +100,11 @@ def single_source_dijkstra_path_length(G, source, weight_function, paths=None, d
     disjunction: function (default=sum)
         Whether to sum paths or use the max value.
         Use `sum` for metric and `max` for ultrametric.
+    
+    cutoff: int (default=None)
+        Maximum number of connections in the path.
+        If None, compute the entire closure as is the cutoff is the number of nodes.
+        
 
     Returns
     -------
@@ -116,6 +125,9 @@ def single_source_dijkstra_path_length(G, source, weight_function, paths=None, d
 
     """
     G_succ = G._succ if G.is_directed() else G._adj
+    
+    if cutoff is not None:
+        paths = {source: [source]}
 
     push = heappush
     pop = heappop
@@ -144,9 +156,12 @@ def single_source_dijkstra_path_length(G, source, weight_function, paths=None, d
                 if vu_dist < u_dist:
                     raise ValueError("Contradictory paths found:", "negative weights?")
             elif u not in seen or vu_dist < seen[u]:
-                seen[u] = vu_dist
-                push(fringe, (vu_dist, next(c), u))
+                if paths is not None and len(paths[v]) > cutoff:
+                    continue                
                 if paths is not None:
                     paths[u] = paths[v] + [u]
+                seen[u] = vu_dist
+                push(fringe, (vu_dist, next(c), u))
+                
     #
     return dist
