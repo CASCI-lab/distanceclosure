@@ -17,12 +17,51 @@ __author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe X
 
 __all__ = [
     "metric_backbone",
-    "ultrametric_backbone"
+    "ultrametric_backbone",
+    "metric_backbone_distortion"
 ]
 
 
 __kinds__ = ['metric', 'ultrametric']
 __algorithms__ = ['dense', 'dijkstra']
+
+
+def metric_backbone_distortion(D, weight='weight', self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+    """
+    Fast backbone (only) computation considering node ordering.
+
+    Parameters
+    ----------
+    D : NetworkX graph
+        The Distance graph
+    weight : str, optional
+        Edge property containing distance values, by default 'weight'
+    self_loops : bool, optional
+        If the distance graph has nodes with self distance greater than zero, by default False
+    cutoff : _type_, optional
+        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
+    verbose : bool, optional
+        Prints statements as it computes, by default False
+
+    Returns
+    -------
+    NetworkX graph
+        The metric backbone subgraph.
+
+    Raises
+    ------
+    NotImplementedError
+        Self-loop closure and finite step (cutoff) not implemented yet
+    """
+
+    if self_loops:
+        raise NotImplementedError
+    if cutoff is not None:
+        raise NotImplementedError
+
+    G, s_values = _compute_backbone_distortion(D, weight=weight, disjunction=sum, verbose=False, *args, **kwargs)
+
+    return G, s_values
 
 
 def metric_backbone(D, weight='weight', self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
@@ -99,7 +138,7 @@ def ultrametric_backbone(D, weight='weight', self_loops=False, cutoff=None, verb
 
     return G
 
-def _compute_backbone(D, weight='weight', disjunction=sum, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+def _compute_backbone(D, weight='weight', disjunction=sum, self_loops=False, verbose=False, *args, **kwargs):
     """
     Fast backbone (only) computation considering node ordering.
 
@@ -146,10 +185,68 @@ def _compute_backbone(D, weight='weight', disjunction=sum, self_loops=False, cut
             per = i/total
             print("Closure: Dijkstra : source node {u:s} : {i:d} of {total:d} ({per:.2%})".format(u=n, i=i, total=total, per=per))
 
-        metric_dist = single_source_dijkstra_path_length(G, source=n, weight_function=weight_function, disjunction=disjunction, cutoff=cutoff)
+        metric_dist = single_source_dijkstra_path_length(G, source=n, weight_function=weight_function, disjunction=disjunction)
         neighbors = list(G.neighbors(n)) # Need to be separate or will raise changing list error
         for v in neighbors:
             if metric_dist[v] < G[n][v][weight]:
                 G.remove_edge(n, v)
     
     return G
+
+def _compute_backbone_distortion(D, weight='weight', disjunction=sum, self_loops=False, verbose=False, *args, **kwargs):
+    """
+    Fast backbone (only) computation considering node ordering.
+
+    Parameters
+    ----------
+    D : NetworkX graph
+        The Distance graph
+    weight : str, optional
+        Edge property containing distance values, by default 'weight'
+    disjunction: function (default=sum)
+        Whether to sum paths or use the max value.
+        Use `sum` for metric and `max` for ultrametric.
+    self_loops : bool, optional
+        If the distance graph has nodes with self distance greater than zero, by default False
+    cutoff : _type_, optional
+        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
+    verbose : bool, optional
+        Prints statements as it computes, by default False
+
+    Returns
+    -------
+    NetworkX graph
+        The backbone subgraph.
+
+    Raises
+    ------
+    NotImplementedError
+        Self-loop closure and finite step (cutoff) not implemented yet
+    """
+    
+    G = D.copy()
+
+    ordered_nodes = sorted(G.degree(weight=weight), key=lambda x: x[1], reverse=True)
+
+    weight_function = _weight_function(G, weight)
+    
+    if verbose:
+        total = G.number_of_nodes()
+        i = 0
+    
+    s_values = dict()
+
+    for n, _ in ordered_nodes:
+        if verbose:
+            i += 1
+            per = i/total
+            print("Closure: Dijkstra : source node {u:s} : {i:d} of {total:d} ({per:.2%})".format(u=n, i=i, total=total, per=per))
+
+        metric_dist = single_source_dijkstra_path_length(G, source=n, weight_function=weight_function, disjunction=disjunction)
+        neighbors = list(G.neighbors(n)) # Need to be separate or will raise changing list error
+        for v in neighbors:
+            if metric_dist[v] < G[n][v][weight]:
+                s_values[(n, v)] = G[n][v][weight]/metric_dist[v]
+                G.remove_edge(n, v)                
+    
+    return G, s_values
