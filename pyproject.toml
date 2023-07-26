@@ -1,10 +1,10 @@
 [project]
-name = __package__
-version = __version__
+name = "distanceclosure"
+version = "0.5"
 authors = [
     {name = "Rion Brattig Correia", email = "rionbr@gmail.com"},
 ]
-description = __description__
+description = "Distance Closure on Complex Networks"
 readme = "README.md"
 requires-python = ">=3.6"
 classifiers = [
