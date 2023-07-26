@@ -1,10 +1,11 @@
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from distanceclosure import __package__, __description__, __version__
-from Cython.Build import cythonize
-from Cython.Distutils import build_ext
 
-import subprocess
+#from Cython.Build import cythonize
+#from Cython.Distutils import build_ext
+
+#import subprocess
 
 
 # Readme
@@ -14,20 +15,20 @@ def readme():
 
 
 # Remove old files
-subprocess.Popen("rm -rf build", shell=True, executable="/bin/bash")
-subprocess.Popen("rm -rf distanceclosure/cython/*.c", shell=True, executable="/bin/bash")
-subprocess.Popen("rm -rf *.so", shell=True, executable="/bin/bash")
+#subprocess.Popen("rm -rf build", shell=True, executable="/bin/bash")
+#subprocess.Popen("rm -rf distanceclosure/cython/*.c", shell=True, executable="/bin/bash")
+#subprocess.Popen("rm -rf *.so", shell=True, executable="/bin/bash")
 #
 #
 #
-ext_modules = [
-    Extension("distanceclosure.cython.dijkstra", sources=[
-        'distanceclosure/cython/pqueue.pxd',
-        'distanceclosure/cython/dijkstra.pyx',
-        'distanceclosure/cython/libpqueue/pqueue.c',
-    ]),
-]
-cmdclass = {'build_ext': build_ext}
+#ext_modules = [
+#    Extension("distanceclosure.cython.dijkstra", sources=[
+#        'distanceclosure/cython/pqueue.pxd',
+#        'distanceclosure/cython/dijkstra.pyx',
+#        'distanceclosure/cython/libpqueue/pqueue.c',
+#    ]),
+#]
+#cmdclass = {'build_ext': build_ext}
 
 setup(
     name=__package__,
@@ -55,10 +56,10 @@ setup(
         'scipy',
         'networkx',
         'pandas',
-        'cython',  # for Dijkstra
+        #'cython',  # for Dijkstra
     ],
-    cmdclass=cmdclass,
+    #cmdclass=cmdclass,
     include_package_data=True,
     zip_safe=False,
-    ext_modules=cythonize(ext_modules, compiler_directives={'language_level': "3"})
+    #ext_modules=cythonize(ext_modules, compiler_directives={'language_level': "3"})
 )

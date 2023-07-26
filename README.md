@@ -14,7 +14,7 @@ Installation
 Latest development release on GitHub (v0.5):
 
 ```
-pip install git+git://github.com/CASCI-lab/distanceclosure
+pip install git+https://github.com/CASCI-lab/distanceclosure
 ```
 
 Latest PyPI stable release (v0.4.1):
