@@ -11,13 +11,13 @@ This package implements methods to calculate the Distance Closure of Complex Net
 Installation
 ---------------
 
-Latest development release on GitHub
+Latest development release on GitHub (v0.5):
 
 ```
-pip install git+git://github.com/rionbr/distanceclosure
+pip install git+git://github.com/CASCI-lab/distanceclosure
 ```
 
-Latest PyPI stable release:
+Latest PyPI stable release (v0.4.1):
 
 ```
 $pip install distanceclosure
@@ -27,7 +27,7 @@ $pip install distanceclosure
 Simple usage
 ------------
 
-How to calculate Closure and retrieve the metric backbone of a weighted distance graph:
+How to calculate Closure of a weighted distance graph:
 
 ```python
     import networkx as nx
@@ -51,7 +51,7 @@ How to calculate Closure and retrieve the metric backbone of a weighted distance
     # Make sure every edge has an attribute with the distance value
     nx.set_edge_attributes(G, name='distance', values=edgelist)
 
-    # Compute closure (note this will be a fully connected graph. It can be slow for large graphs)
+    # Compute closure (note this will be a fully connected graph for an undirected connected component. It can be slow for large graphs)
     C = dc.distance_closure(G, kind='metric', weight='distance')
 
     # You can now access the new `metric_distance` value and whether the edge is part of the metric backbone.
@@ -59,19 +59,23 @@ How to calculate Closure and retrieve the metric backbone of a weighted distance
     > {'distance': 6, 'metric_distance': 6, 'is_metric': True}
 ```
 
-If you are only interested in the metric backbone, you might want to only include distance values for edges already in the graph.
+If you are only interested in the metric backbone itself:
 
 ```python
-    C2 = dc.distance_closure(G, kind='metric', weight='distance', only_backbone=True)
+    B = dc.metric_backbone(G, weight='distance')
 
+    B.number_of_edges()
+    > 9
     C.number_of_edges()
     > 28
-    C2.number_of_edges()
+    G.number_of_edges()
     > 11
 ```
 
 Papers
 -------
+
+- F.X. Costa, R.B. Correia, L.M. Rocha [2023]. "[The distance backbone of directed networks](https://link.springer.com/chapter/10.1007/978-3-031-21131-7_11)". In: Cherifi, H., Mantegna, R.N., Rocha, L.M., Cherifi, C., Micciche, S. (eds) *Complex Networks and Their Applications XI. COMPLEX NETWORKS 2022.* Studies in Computational Intelligence, vol 1078. Springer, Cham. doi: 10.1007/978-3-031-21131-7_11
 
 - T. Simas, R.B. Correia, L.M. Rocha [2021]. "[The distance backbone of complex networks](https://academic.oup.com/comnet/article/9/6/cnab021/6403661)". *Journal of Complex Networks*, 9 (**6**):cnab021. doi: 10.1093/comnet/cnab021
 
@@ -89,18 +93,21 @@ Support
 
 Those who have contributed to ``distanceclosure`` have received support throughout the years from a variety of sources.  We list them below.
 
-- [CASCI](https://homes.luddy.indiana.edu/rocha/casci.php), Indiana University, Bloomington, IN; PI: Luis M. Rocha
+- [CASCI](https://casci.binghamton.edu/casci.php), Binghamton University, Binghamton, NY; PI: Luis M. Rocha
 - [CAPES Foundation](https://www.gov.br/capes/pt-br), Ministry of Education of Brazil, Brasília, Brazil; Rion B. Correia.
 
 
 Development
 -----------
 
-Pull requests are welcome :) Please get in touch beforehand: `rionbr(at)gmail(dot)com`.
+Pull requests are welcome :) Please get in touch beforehand: `rionbr(at)gmail(dot)com` or `fcosta(at)binghamton(dot)edu`.
 
 
 Changelog
 ---------
+
+v0.5
+- Iterative backbone computation (faster for graphs with smaller backbones)
 
 v0.4
 - Code simplification and compliance to NetworkX
