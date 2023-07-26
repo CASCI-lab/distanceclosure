@@ -2,7 +2,10 @@
 .DS_Store
 distanceclosure/notest.py
 experiments/
+
+# Old Files
 old_README.md
+setup.py
 
 # Test files
 sample_net.gpickle
