@@ -142,7 +142,7 @@ def _compute_backbone(D, weight='weight', disjunction=sum, distortion=False, sel
         for v in neighbors:
             if metric_dist[v] < G[n][v][weight]:
                 if distortion:
-                    s_values[(n, v)] = G[n][v][weight]/metric_dist[v]
+                    s_values[(n, v)] = G[n][v][weight]/metric_dist[v] if metric_dist[v] > 0.0 else np.inf
                 G.remove_edge(n, v)
     
     return G, s_values
