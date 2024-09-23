@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-__kinds__ = ['metric', 'ultrametric']
+__kinds__ = ['metric', 'ultrametric', 'drastic']
 __algorithms__ = ['dense', 'dijkstra']
 
 def metric_backbone(D, weight='weight', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
@@ -31,11 +31,13 @@ def metric_backbone(D, weight='weight', distortion=False, self_loops=False, cuto
     
     return backbone(D, weight=weight, kind='metric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
 
+
 def ultrametric_backbone(D, weight='weight', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
     """ Alias for :func:`backbone`  with kind=ultrametric.
     """
     
     return backbone(D, weight=weight, kind='ultrametric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+
 
 def backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
     """
@@ -78,6 +80,8 @@ def backbone(D, weight='weight', kind='metric', distortion=False, self_loops=Fal
         G, s_values = _compute_backbone(D, weight=weight, disjunction=sum, distortion=distortion, verbose=verbose, *args, **kwargs)
     elif kind == 'ultrametric':
         G, s_values = _compute_backbone(D, weight=weight, disjunction=max, distortion=distortion, verbose=verbose, *args, **kwargs)
+    elif kind == 'drastic':
+        G, s_values = _compute_backbone(D, weight=weight, disjunction=drastic_disjunction, distortion=distortion, verbose=verbose, *args, **kwargs)
     
     if distortion:
         return G, s_values
@@ -147,6 +151,15 @@ def _compute_backbone(D, weight='weight', disjunction=sum, distortion=False, sel
     
     return G, s_values
 
+
+def drastic_disjunction(iterable):
+        
+    iterable.sort()
+    if iterable[0] == 0.0:
+        return iterable[1]
+    else:
+        return np.inf
+    
 
 def _check_for_kind(kind):
     """
