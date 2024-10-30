@@ -75,17 +75,22 @@ def backbone(D, weight='weight', kind='metric', distortion=False, self_loops=Fal
         raise NotImplementedError
     
     if kind == 'metric':
-        G, s_values = _compute_backbone(D, weight=weight, disjunction=sum, distortion=distortion, verbose=verbose, *args, **kwargs)
+        G = _compute_backbone(D, weight=weight, disjunction=sum, distortion=distortion, verbose=verbose, *args, **kwargs)
     elif kind == 'ultrametric':
-        G, s_values = _compute_backbone(D, weight=weight, disjunction=max, distortion=distortion, verbose=verbose, *args, **kwargs)
+        G = _compute_backbone(D, weight=weight, disjunction=max, distortion=distortion, verbose=verbose, *args, **kwargs)
     
     if distortion:
-        return G, s_values
+        
+        if kind == 'metric':
+            svals = _compute_distortions(D, weight=weight, disjunction=sum, distortion=distortion, verbose=verbose, *args, **kwargs)
+        elif kind == 'ultrametric':
+            svals = _compute_distortions(D, weight=weight, disjunction=max, distortion=distortion, verbose=verbose, *args, **kwargs)
+                 
+        return G, svals
     else:
         return G
 
-
-def _compute_backbone(D, weight='weight', disjunction=sum, distortion=False, self_loops=False, verbose=False, *args, **kwargs):
+def _compute_backbone(D, weight='weight', disjunction=sum, self_loops=False, verbose=False, *args, **kwargs):
     """
     Fast backbone (only) computation considering node ordering.
 
@@ -129,8 +134,6 @@ def _compute_backbone(D, weight='weight', disjunction=sum, distortion=False, sel
         total = G.number_of_nodes()
         i = 0
         
-    s_values = dict()
-
     for n, _ in ordered_nodes:
         if verbose:
             i += 1
@@ -141,12 +144,29 @@ def _compute_backbone(D, weight='weight', disjunction=sum, distortion=False, sel
         neighbors = list(G.neighbors(n)) # Need to be separate or will raise changing list error
         for v in neighbors:
             if metric_dist[v] < G[n][v][weight]:
-                if distortion:
-                    s_values[(n, v)] = G[n][v][weight]/metric_dist[v] if metric_dist[v] > 0.0 else np.inf
                 G.remove_edge(n, v)
     
-    return G, s_values
+    return G
 
+
+def _compute_distortions(D, B, weight='weight', disjunction=sum, self_loops=False):
+    """
+    COMPUTE DISTORTIONS: UPDATE README
+    """
+    G = D.copy()
+    
+    G.remove_edges_from(B.edges())
+    weight_function = _weight_function(B, weight)
+
+    svals = dict()        
+    for u in G.nodes():
+        metric_dist = single_source_dijkstra_path_length(B, source=u, weight_function=weight_function, disjunction=disjunction)
+        for v in G.neighbors(u):
+            svals[(u, v)] = G[u][v][weight]/metric_dist[v]
+    
+    return svals   
+    
+    
 
 def _check_for_kind(kind):
     """
