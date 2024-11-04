@@ -150,3 +150,84 @@ def single_source_dijkstra_path_length(G, source, weight_function, paths=None, d
                     paths[u] = paths[v] + [u]
     #
     return dist
+
+def single_source_target_dijkstra_path_length(G, source, target, weight_function, paths=None, disjunction=sum):
+    """Uses (a custom) Dijkstra's algorithm to find shortest weighted paths
+
+    Parameters
+    ----------
+    G : NetworkX graph
+
+    source : node
+        Starting node for path.
+    
+    target : node
+        Ending node for path. Search is halted when target is found.
+
+    weight_function: function
+        Function with (u, v, data) input that returns that edges weight
+
+    paths: dict, optional (default=None)
+        dict to store the path list from source to each node, keyed by node.
+        If None, paths are not stored.
+
+    disjunction: function (default=sum)
+        Whether to sum paths or use the max value.
+        Use `sum` for metric and `max` for ultrametric.
+
+    Returns
+    -------
+    distance : dictionary
+        A mapping from node to shortest distance to that node from one
+        of the source nodes.
+
+    Raises
+    ------
+    NodeNotFound
+        If `source` is not in `G`.
+
+    Note
+    -----
+    The optional predecessor and path dictionaries can be accessed by
+    the caller through the original paths objects passed
+    as arguments. No need to explicitly return paths.
+
+    """
+    G_succ = G._adj #G._succ if G.is_directed() else G._adj
+
+    push = heappush
+    pop = heappop
+    dist = {}  # dictionary of final distances
+    seen = {}
+    # fringe is heapq with 3-tuples (distance,c,node)
+    # use the count c to avoid comparing nodes (may not be able to)
+    c = count()
+    fringe = []
+    if source not in G:
+        raise nx.NodeNotFound(f"Source {source} not in G")
+    paths = {source: [source]} 
+    seen[source] = 0
+    push(fringe, (0, next(c), source))
+    while fringe:
+        (d, _, v) = pop(fringe)
+        if v in dist:
+            continue  # already searched this node.
+        dist[v] = d
+        if v == target:
+            break
+        for u, e in G_succ[v].items():
+            cost = weight_function(v, u, e)
+            if cost is None:
+                continue
+            vu_dist = disjunction([dist[v], cost])
+            if u in dist:
+                u_dist = dist[u]
+                if vu_dist < u_dist:
+                    raise ValueError("Contradictory paths found:", "negative weights?")
+            elif u not in seen or vu_dist < seen[u]:
+                seen[u] = vu_dist
+                push(fringe, (vu_dist, next(c), u))
+                if paths is not None:
+                    paths[u] = paths[v] + [u]
+    #
+    return dist[target], paths[target]
