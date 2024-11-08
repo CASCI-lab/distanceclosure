@@ -11,7 +11,7 @@ from itertools import count
 import networkx as nx
 from networkx.algorithms.shortest_paths.weighted import _weight_function
 __name__ = 'distanceclosure'
-__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
+__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe Xavier Costa <fcosta@binghamton.com>'])
 
 __all__ = [
     "all_pairs_dijkstra_path_length",
@@ -151,7 +151,7 @@ def single_source_dijkstra_path_length(G, source, weight_function, paths=None, d
     #
     return dist
 
-def single_source_target_dijkstra_path_length(G, source, target, weight_function, paths=None, disjunction=sum):
+def single_source_target_dijkstra_path(G, source, target, weight_function, disjunction=sum):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted paths
 
     Parameters
@@ -230,4 +230,4 @@ def single_source_target_dijkstra_path_length(G, source, target, weight_function
                 if paths is not None:
                     paths[u] = paths[v] + [u]
     #
-    return dist[target], paths[target]
+    return paths[target]

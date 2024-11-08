@@ -5,13 +5,13 @@ Distance Closure on Complex Networks (Network Backbone)
 Description
 -------------
 
-This package implements methods to calculate the Distance Closure of Complex Networks including its Metric and UltraMetric Backbone.
+This package implements methods to calculate the Distance Closure of Complex Networks including its Metric and Ultrametric Backbone.
 
 
 Installation
 ---------------
 
-Latest development release on GitHub (v0.5):
+Latest development release on GitHub (v0.6):
 
 ```
 pip install git+https://github.com/CASCI-lab/distanceclosure
@@ -93,21 +93,24 @@ Support
 
 Those who have contributed to ``distanceclosure`` have received support throughout the years from a variety of sources.  We list them below.
 
-- [CASCI](https://casci.binghamton.edu/casci.php), Binghamton University, Binghamton, NY; PI: Luis M. Rocha
-- [CAPES Foundation](https://www.gov.br/capes/pt-br), Ministry of Education of Brazil, Brasília, Brazil; Rion B. Correia.
-
+- [CASCI](https://casci.binghamton.edu/casci.php), _Binghamton University_, Binghamton, NY; PI: Luis M. Rocha
+- [CAPES Foundation](https://www.gov.br/capes/pt-br), _Ministry of Education of Brazil_, Brasília, Brazil; Rion B. Correia.
+- [Foundation for Science and Technology](https://www.fct.pt/en/), _Ministry of Education, Science and Innovation of Portugal_, Lisbon, Portugal; Felipe X. Costa
 
 Development
 -----------
 
-Pull requests are welcome :) Please get in touch beforehand: `rionbr(at)gmail(dot)com` or `fcosta(at)binghamton(dot)edu`.
+Pull requests are welcome :) Please get in touch beforehand: `fcosta(at)binghamton(dot)edu` or `rionbr(at)gmail(dot)com`.
 
 
 Changelog
 ---------
 
+v0.6
+- Flagged backbone computation (speed up algorithm for backbone computation)
+
 v0.5
-- Iterative backbone computation (faster for graphs with smaller backbones)
+- Iterative backbone computation (speed up algorithm for backbone computation)
 
 v0.4
 - Code simplification and compliance to NetworkX
@@ -126,4 +129,4 @@ v0.2
 - First docs released
 
 v0.1
-- First release nad dense matrix APSP
+- First release and dense matrix APSP
