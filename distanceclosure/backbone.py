@@ -9,37 +9,37 @@ These algorithms work with edges weighted as distances.
 
 import numpy as np
 import networkx as nx
-from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path_length
+from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path
 from networkx.algorithms.shortest_paths.weighted import _weight_function
 
 __name__ = 'distanceclosure'
 __author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe Xavier Costa <fcosta@binghamton.com>'])
 
 __all__ = [
-    "backbone",
     "metric_backbone",
     "ultrametric_backbone",
-    "backbone_percolation"
+    "iterative_backbone",
+    "flagged_backbone"
 ]
 
 __kinds__ = ['metric', 'ultrametric']
 __algorithms__ = ['dense', 'dijkstra']
 
 def metric_backbone(D, weight='weight', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
-    """ Alias for :func:`backbone` with kind=metric.
+    """ Alias for :func:`iterative_backbone` with kind=metric.
     """
     
-    return backbone(D, weight=weight, kind='metric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+    return iterative_backbone(D, weight=weight, kind='metric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
 
 def ultrametric_backbone(D, weight='weight', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
-    """ Alias for :func:`backbone`  with kind=ultrametric.
+    """ Alias for :func:`iterative_backbone`  with kind=ultrametric.
     """
     
-    return backbone(D, weight=weight, kind='ultrametric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+    return iterative_backbone(D, weight=weight, kind='ultrametric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
 
-def backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
     """
-    Fast backbone (only) computation considering node ordering.
+    Iterative backbone computation considering node ordering.
 
     Parameters
     ----------
@@ -75,24 +75,38 @@ def backbone(D, weight='weight', kind='metric', distortion=False, self_loops=Fal
         raise NotImplementedError
     
     if kind == 'metric':
-        G = _compute_backbone(D, weight=weight, disjunction=sum, distortion=distortion, verbose=verbose, *args, **kwargs)
+        disjunction = sum
     elif kind == 'ultrametric':
-        G = _compute_backbone(D, weight=weight, disjunction=max, distortion=distortion, verbose=verbose, *args, **kwargs)
+        disjunction = max
+    
+    G = D.copy()
+    weight_function = _weight_function(G, weight)
+    
+    sorted_edges = sorted(G.edges(data=weight), key= lambda x: x[2], reverse=True)
+
+    if verbose:
+        total = G.number_of_edges()
+        i = 0
+    
+    for u, v, dist in sorted_edges:
+        if verbose:
+            i += 1
+            per = i/total
+            print("Backbone: Dijkstra: {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per))
+        
+        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)        
+        if metric_dist[v] < dist:
+            G.remove_edge(u, v)
     
     if distortion:
-        
-        if kind == 'metric':
-            svals = _compute_distortions(D, weight=weight, disjunction=sum, distortion=distortion, verbose=verbose, *args, **kwargs)
-        elif kind == 'ultrametric':
-            svals = _compute_distortions(D, weight=weight, disjunction=max, distortion=distortion, verbose=verbose, *args, **kwargs)
-                 
+        svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, verbose=verbose, *args, **kwargs)         
         return G, svals
     else:
         return G
 
-def _compute_backbone(D, weight='weight', disjunction=sum, self_loops=False, verbose=False, *args, **kwargs):
+def flagged_backbone(D, weight='weight', disjunction=sum, distortion=False, self_loops=False, *args, **kwargs):
     """
-    Fast backbone (only) computation considering node ordering.
+    Iterative backbone computation where edges are flagged as belonging to the backbone if they are part of an indirect shortest-path.
 
     Parameters
     ----------
@@ -103,72 +117,10 @@ def _compute_backbone(D, weight='weight', disjunction=sum, self_loops=False, ver
     disjunction: function (default=sum)
         Whether to sum paths or use the max value.
         Use `sum` for metric and `max` for ultrametric.
-    self_loops : bool, optional
-        If the distance graph has nodes with self distance greater than zero, by default False
     distortion : bool, optional
         If one wants to track semi-triangular distortion, by default False
-    cutoff : _type_, optional
-        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
-    verbose : bool, optional
-        Prints statements as it computes, by default False
-
-    Returns
-    -------
-    NetworkX graph
-        The backbone subgraph.
-    
-
-    Raises
-    ------
-    NotImplementedError
-        Self-loop closure and finite step (cutoff) not implemented yet
-    """
-    
-    G = D.copy()
-
-    ordered_nodes = sorted(G.degree(weight=weight), key=lambda x: x[1], reverse=True)
-
-    weight_function = _weight_function(G, weight)
-    
-    if verbose:
-        total = G.number_of_nodes()
-        i = 0
-        
-    for n, _ in ordered_nodes:
-        if verbose:
-            i += 1
-            per = i/total
-            print("Closure: Dijkstra : source node {u:s} : {i:d} of {total:d} ({per:.2%})".format(u=n, i=i, total=total, per=per))
-
-        metric_dist = single_source_dijkstra_path_length(G, source=n, weight_function=weight_function, disjunction=disjunction)
-        neighbors = list(G.neighbors(n)) # Need to be separate or will raise changing list error
-        for v in neighbors:
-            if metric_dist[v] < G[n][v][weight]:
-                G.remove_edge(n, v)
-    
-    return G
-
-def backbone_percolation(D, weight='weight', disjunction=sum, distortion=False, self_loops=False, *args, **kwargs):
-    """
-    Fast backbone (only) computation inspired by percolation.
-
-    Parameters
-    ----------
-    D : NetworkX graph
-        The Distance graph
-    weight : str, optional
-        Edge property containing distance values, by default 'weight'
-    disjunction: function (default=sum)
-        Whether to sum paths or use the max value.
-        Use `sum` for metric and `max` for ultrametric.
     self_loops : bool, optional
         If the distance graph has nodes with self distance greater than zero, by default False
-    distortion : bool, optional
-        If one wants to track semi-triangular distortion, by default False
-    cutoff : _type_, optional
-        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
-    verbose : bool, optional
-        Prints statements as it computes, by default False
 
     Returns
     -------
@@ -190,26 +142,24 @@ def backbone_percolation(D, weight='weight', disjunction=sum, distortion=False, 
 
     edges_analyzed = []
     sorted_edges = sorted(G.edges(data=weight), key= lambda x: x[2], reverse=True)
-    s_values = dict() # Distortion dictionary
 
     for u, v, _ in sorted_edges:
         if (u, v) in edges_analyzed:
             continue
         else:
             edges_analyzed.append((u, v))
-            dist, path = single_source_target_dijkstra_path_length(G=G, source=u, target=v, 
+            dist, path = single_source_target_dijkstra_path(G=G, source=u, target=v, 
                                                                    weight_function=weight_function, disjunction=disjunction)
             if len(path) > 2:
                 
                 for i in range(len(path)-1):
                     edges_analyzed.append((path[i], path[i+1]))
                 
-                # Compute distortion of the removed edge
-                s_values[(u, v)] = G[u][v]['distance']/dist
                 G.remove_edge(u, v)
     
     if distortion:
-        return G, s_values
+        svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
+        return G, svals
     else:
         return G
 
