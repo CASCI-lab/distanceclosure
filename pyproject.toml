@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "distanceclosure"
-version = "0.5"
+version = "0.6.1"
 authors = [
     {name = "Rion Brattig Correia", email = "rionbr@gmail.com"},
     {name = "Felipe Xavier Costa", email = "fcosta@binghamton.edu"},
