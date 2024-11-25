@@ -19,7 +19,8 @@ __all__ = [
     "metric_backbone",
     "ultrametric_backbone",
     "iterative_backbone",
-    "flagged_backbone"
+    "flagged_backbone",
+    "heuristic_backbone"
 ]
 
 __kinds__ = ['metric', 'ultrametric', 'drastic']
