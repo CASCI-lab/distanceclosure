@@ -6,7 +6,8 @@ Description
 
 This package implements methods for the calculation of the `Distance Closure` on Complex Networks, including its `metric` and `ultrametric` backbone.
 
-The distance backbone is a principled graph reduction technique. It is a small subgraph sufficicent to compute all shortest paths. This method is suited for undirected weighted graphs, also known as proximity (similarity) or distance (dissimilarity) graphs.
+The distance backbone is a principled graph reduction technique. It is a small subgraph sufficicent to compute all shortest paths lengths.
+This method is suited for both undirected and directed weighted graphs. If the edge weights represent a notion of distance (dissimilarity), where smaller values represent stronger interactions, follow the guide below. If the edge weights represent a notion of proximity (similarity), where larger values represent stronger interactions, one should transform to an isomorphic distance measure using the `prox2dist` function in the `distanceclosure.utils` script.
 
 
 Quick Install
