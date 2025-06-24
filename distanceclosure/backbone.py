@@ -20,7 +20,7 @@ __all__ = [
     "ultrametric_backbone",
     "iterative_backbone",
     "flagged_backbone",
-    "heuristic_backbone"
+    "heuristic_undirected_backbone"
 ]
 
 __kinds__ = ['metric', 'ultrametric', 'drastic']
@@ -207,7 +207,7 @@ def _compute_distortions(D, B, weight='weight', disjunction=sum, self_loops=Fals
     
     
 
-def heuristic_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
     """
     Heuristic backbone computation combining triangle search (based on "V. Kalavri et al (2016) Proceedings of the VLDB Endowment, Volume 9, Issue 9") with :func:`iterative_backbone`.
 
@@ -237,11 +237,15 @@ def heuristic_backbone(D, weight='weight', kind='metric', distortion=False, self
 
     """
     
+    from itertools import pairwise
+    
     _check_for_kind(kind)
     
     if self_loops:
         raise NotImplementedError
     if cutoff is not None:
+        raise NotImplementedError
+    if nx.is_directed(D):
         raise NotImplementedError
     
     if kind == 'metric':
@@ -253,23 +257,52 @@ def heuristic_backbone(D, weight='weight', kind='metric', distortion=False, self
         
     G = D.copy()
     weight_function = _weight_function(G, weight)
-
-    sorted_edges = sorted(G.edges(data=weight), key= lambda x: x[2], reverse=True)
     
-    for u, v, dist in sorted_edges:
-
-        metric_dist_v = dist        
-        neighbors = list(G.neighbors(u)) # Need to be separate or will raise changing list error        
-        for k in neighbors:
-            if G.has_edge(k, v):
-                metric_dist_v = min(metric_dist_v, disjunction([G[u][k][weight], G[k][v][weight]]))
-
-        if metric_dist_v < dist:
-            G.remove_edge(u, v)
-        else:
-            metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)            
-            if metric_dist[v] < dist:
-                G.remove_edge(u, v)    
+    print('Semi-metric Triangles')
+    
+    for v in G.nodes():
+        for x, y in pairwise(G[v]):
+            if G.has_edge(x, y):
+                if disjunction([G[x][y][weight], G[y][v][weight]]) < G[x][v][weight]:
+                    G.remove_edge(x, v)
+    
+    print('Local Metric')
+    
+    metric_edges = set()
+    U = dict()
+    for v in G.nodes():
+        U[v] = [(x, d['weight']) for x, d in sorted(G[v].items(), key=lambda item: item[1][weight])]        
+        W = set()
+        metric = True
+        metric_edges.add((v, U[v].pop(0)[0]))
+        
+        while len(U[v]) > 0:
+            e = U[v].pop(0)
+            for _, x in metric_edges:
+                wx = disjunction([G[v][x][weight], U[x][0][1]])
+                W.add(wx)
+                
+            for w in W:
+                if e[1] > w:
+                    metric = False
+                    break
+            
+            if metric:
+                metric_edges.add((v, e[0]))
+                W = set()
+            else:
+                continue
+    
+    #B = G.edge_subgraph(metric_edges).copy()
+        
+    for u in G.nodes():
+        trig_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
+        for v, spl in trig_dist.items():
+            if not (u, v) not in metric_edges:
+                if G[u][v][weight] <= spl:
+                    metric_edges.add((u, v))
+    
+    G = G.edge_subgraph(metric_edges).copy()
     
     if distortion:
         svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
