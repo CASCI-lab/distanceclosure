@@ -82,24 +82,25 @@ def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self
     G = D.copy()
     weight_function = _weight_function(G, weight)
     
-    sorted_edges = sorted(G.edges(data=weight), key= lambda x: x[2], reverse=True)
-
     if verbose:
-        total = G.number_of_edges()
+        total = G.number_of_nodes()
         i = 0
     
-    for u, v, dist in sorted_edges:
+    for u in G.nodes():
         if verbose:
             i += 1
             per = i/total
             print("Backbone: Dijkstra: {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per))
         
-        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)        
-        if metric_dist[v] < dist:
-            G.remove_edge(u, v)
+        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
+        neighbors = list(G.neighbors(u))        
+        
+        for v in neighbors:
+            if metric_dist[v] < G[u][v][weight]:
+                G.remove_edge(u, v)
     
     if distortion:
-        svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, verbose=verbose, *args, **kwargs)         
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)         
         return G, svals
     else:
         return G
@@ -164,7 +165,7 @@ def flagged_backbone(D, weight='weight', disjunction=sum, distortion=False, self
         return G
 
 
-def _compute_distortions(D, B, weight='weight', disjunction=sum, self_loops=False):
+def _compute_distortions(D, B, weight='weight', disjunction=sum):
     """
     COMPUTE DISTORTIONS: UPDATE README
     """
