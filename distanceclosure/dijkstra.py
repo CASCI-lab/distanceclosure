@@ -152,7 +152,7 @@ def single_source_dijkstra_path_length(G, source, weight_function, paths=None, d
     #
     return dist
 
-def single_source_target_dijkstra_path(G, source, target, weight_function, disjunction=sum):
+def single_source_target_dijkstra_path(G, source, target, weight="weight", disjunction=sum):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted paths
 
     Parameters
@@ -195,6 +195,7 @@ def single_source_target_dijkstra_path(G, source, target, weight_function, disju
 
     """
     G_succ = G._adj #G._succ if G.is_directed() else G._adj
+    weight_function = _weight_function(G, weight)
 
     push = heappush
     pop = heappop
