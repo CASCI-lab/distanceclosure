@@ -15,7 +15,8 @@ __author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe X
 
 __all__ = [
     "all_pairs_dijkstra_path_length",
-    "single_source_dijkstra_path_length"
+    "single_source_dijkstra_path_length",
+    "single_source_target_dijkstra_path"
 ]
 
 def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
