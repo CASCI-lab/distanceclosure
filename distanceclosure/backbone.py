@@ -39,7 +39,7 @@ def ultrametric_backbone(D, weight='weight', distortion=False, self_loops=False,
     
     return iterative_backbone(D, weight=weight, kind='ultrametric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
 
-  
+
 def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
     """
     Iterative backbone computation considering node ordering.
@@ -87,29 +87,29 @@ def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self
     G = D.copy()
     weight_function = _weight_function(G, weight)
     
-    sorted_edges = sorted(G.edges(data=weight), key= lambda x: x[2], reverse=True)
-
     if verbose:
-        total = G.number_of_edges()
+        total = G.number_of_nodes()
         i = 0
     
-    for u, v, dist in sorted_edges:
+    for u, _ in sorted(G.degree(weight=weight), key=lambda x: x[1]):
         if verbose:
             i += 1
             per = i/total
             print("Backbone: Iterative Dijkstra: {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per))
         
-        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)        
-        if metric_dist[v] < dist:
-            G.remove_edge(u, v)
-            
+        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
+        for v in list(G.neighbors(u)):
+            if metric_dist[v] < G[u][v][weight]:
+                G.remove_edge(u, v)
+    
     if distortion:
-        svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, verbose=verbose, *args, **kwargs)         
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)         
         return G, svals
     else:
         return G
 
-def flagged_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+
+def flagged_backbone(D, weight='weight', disjunction=sum, distortion=False, self_loops=False, *args, **kwargs):
     """
 
     Iterative backbone computation where edges are flagged as belonging to the backbone if they are part of an indirect shortest-path.
@@ -157,38 +157,33 @@ def flagged_backbone(D, weight='weight', kind='metric', distortion=False, self_l
     G = D.copy()
     weight_function = _weight_function(G, weight)
 
-    edges_analyzed = []
-    sorted_edges = sorted(G.edges(data=weight), key= lambda x: x[2], reverse=True)
-    
-    if verbose:
-        total = G.number_of_edges()
+    B = nx.DiGraph() if nx.is_directed(G) else nx.Graph()
+    for u, _ in sorted(G.degree(weight=weight), key=lambda x: x[1]):
+        '''
+        if verbose:
+            i += 1
+            per = i/total
+            print("Backbone: Dijkstra: {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per))
+        '''
 
-    for u, v, _ in sorted_edges:
-        if (u, v) in edges_analyzed:
-            continue
-        else:
-            edges_analyzed.append((u, v))
-            
-            path = single_source_target_dijkstra_path(G=G, source=u, target=v, weight_function=weight_function, disjunction=disjunction)
-            if len(path) > 2:
-                
-                for i in range(len(path)-1):
-                    edges_analyzed.append((path[i], path[i+1]))
-                    
+        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
+        for v in list(G.neighbors(u)):
+            if metric_dist[v] < G[u][v][weight]:
                 G.remove_edge(u, v)
-            
-            if verbose:
-                per = len(edges_analyzed)/total
-                print("Backbone: Flagged Dijkstra: {nedges:d} of {total:d} ({per:.2%})".format(nedges=len(edges_analyzed), total=total, per=per))            
+            else:
+                B.add_edge(u, v)
+
+        if B.number_of_edges() == G.number_of_edges():
+            break    
     
     if distortion:
-        svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)
         return G, svals
     else:
         return G
 
 
-def _compute_distortions(D, B, weight='weight', disjunction=sum, self_loops=False):
+def _compute_distortions(D, B, weight='weight', disjunction=sum):
     """
     COMPUTE DISTORTIONS: UPDATE README
     """

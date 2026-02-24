@@ -107,7 +107,7 @@ Changelog
 ---------
 
 v0.6
-- Flagged backbone computation (speed up algorithm for backbone computation)
+- Implemented "single_source_target_dijkstra_path"
 
 v0.5
 - Iterative backbone computation (speed up algorithm for backbone computation)
