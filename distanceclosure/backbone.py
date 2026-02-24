@@ -52,6 +52,8 @@ def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self
         Edge property containing distance values, by default 'weight'
     kind : str, optional
         Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
+    distortion : bool, optional
+        Whether to compute edge distortion from edges not in backbone, by default False
     self_loops : bool, optional
         If the distance graph has nodes with self distance greater than zero, by default False
     cutoff : _type_, optional
@@ -109,7 +111,7 @@ def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self
         return G
 
 
-def flagged_backbone(D, weight='weight', disjunction=sum, distortion=False, self_loops=False, *args, **kwargs):
+def flagged_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
     """
 
     Iterative backbone computation where edges are flagged as belonging to the backbone if they are part of an indirect shortest-path.
@@ -120,13 +122,16 @@ def flagged_backbone(D, weight='weight', disjunction=sum, distortion=False, self
         The Distance graph
     weight : str, optional
         Edge property containing distance values, by default 'weight'
-    disjunction: function (default=sum)
-        Whether to sum paths or use the max value.
-        Use `sum` for metric and `max` for ultrametric.
+    kind : str, optional
+        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
     distortion : bool, optional
-        If one wants to track semi-triangular distortion, by default False
+        Whether to compute edge distortion from edges not in backbone, by default False
     self_loops : bool, optional
         If the distance graph has nodes with self distance greater than zero, by default False
+    cutoff : _type_, optional
+        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
+    verbose : bool, optional
+        Prints statements as it computes, by default False
 
     Returns
     -------
@@ -159,12 +164,10 @@ def flagged_backbone(D, weight='weight', disjunction=sum, distortion=False, self
 
     B = nx.DiGraph() if nx.is_directed(G) else nx.Graph()
     for u, _ in sorted(G.degree(weight=weight), key=lambda x: x[1]):
-        '''
         if verbose:
             i += 1
             per = i/total
             print("Backbone: Dijkstra: {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per))
-        '''
 
         metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
         for v in list(G.neighbors(u)):
@@ -208,18 +211,22 @@ def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=
 
     Parameters
     ----------
+    
     D : NetworkX graph
         The Distance graph
     weight : str, optional
         Edge property containing distance values, by default 'weight'
-    disjunction: function (default=sum)
-        Whether to sum paths or use the max value.
-        Use `sum` for metric and `max` for ultrametric.
+    kind : str, optional
+        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
     distortion : bool, optional
-        If one wants to track semi-triangular distortion, by default False
+        Whether to compute edge distortion from edges not in backbone, by default False
     self_loops : bool, optional
         If the distance graph has nodes with self distance greater than zero, by default False
-
+    cutoff : _type_, optional
+        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
+    verbose : bool, optional
+        Prints statements as it computes, by default False
+        
     Returns
     -------
     NetworkX graph
@@ -251,22 +258,19 @@ def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=
         disjunction=drastic_disjunction
         
     G = D.copy()
-    weight_function = _weight_function(G, weight)
     
-    print('Semi-metric Triangles')
-    
+    #print('Semi-metric Triangles')
     for v in G.nodes():
-        for x, y in pairwise(G[v]):
+        possible_triangles = list(pairwise(G[v]))
+        for x, y in possible_triangles:
             if G.has_edge(x, y):
                 if disjunction([G[x][y][weight], G[y][v][weight]]) < G[x][v][weight]:
                     G.remove_edge(x, v)
     
-    print('Local Metric')
-    
+    #print('Local Metric') 
     metric_edges = set()
-    U = dict()
+    U = {v: [(x, d[weight]) for x, d in sorted(G[v].items(), key=lambda item: item[1][weight])] for v in G.nodes()} 
     for v in G.nodes():
-        U[v] = [(x, d['weight']) for x, d in sorted(G[v].items(), key=lambda item: item[1][weight])]        
         W = set()
         metric = True
         metric_edges.add((v, U[v].pop(0)[0]))
@@ -274,8 +278,9 @@ def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=
         while len(U[v]) > 0:
             e = U[v].pop(0)
             for _, x in metric_edges:
-                wx = disjunction([G[v][x][weight], U[x][0][1]])
-                W.add(wx)
+                if G.has_edge(v, x) and len(U[x])>0:
+                    wx = disjunction([G[v][x][weight], U[x][0][1]])
+                    W.add(wx)
                 
             for w in W:
                 if e[1] > w:
@@ -288,119 +293,23 @@ def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=
             else:
                 continue
     
-    #B = G.edge_subgraph(metric_edges).copy()
-        
-    for u in G.nodes():
-        trig_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
-        for v, spl in trig_dist.items():
-            if not (u, v) not in metric_edges:
-                if G[u][v][weight] <= spl:
-                    metric_edges.add((u, v))
-    
+    unlabeled_edges = [(u, v) for u, v in G.edges() if (u, v) not in metric_edges]
+    weight_function = _weight_function(G, weight)
+
+    for u, v in unlabeled_edges:
+        Pu = single_source_target_dijkstra_path(G, source=u, target=v, weight_function=weight_function, disjunction=disjunction)
+        spl = disjunction([G[Pu[idx-1]][Pu[idx]][weight] for idx in range(1, len(Pu))])
+        if G[u][v][weight] <= spl:
+            metric_edges.add((u, v))
+
     G = G.edge_subgraph(metric_edges).copy()
-    
+    G = iterative_backbone(G, weight=weight, kind=kind, distortion=distortion)
+
     if distortion:
         svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
         return G, svals
     else:
         return G
-
-
-def _compute_heuristic_backbone(D, weight='weight', disjunction=sum, triangles=True, verbose=False, *args, **kwargs):
-    """
-    Heuristic backbone computation as described in: "V. Kalavri et al (2016) Proceedings of the VLDB Endowment, Volume 9, Issue 9"
-
-    Parameters
-    ----------
-    D : NetworkX graph
-        The Distance graph
-    weight : str, optional
-        Edge property containing distance values, by default 'weight'
-    disjunction: function (default=sum)
-        Whether to sum paths or use the max value.
-        Use `sum` for metric and `max` for ultrametric.
-    self_loops : bool, optional
-        If the distance graph has nodes with self distance greater than zero, by default False
-    distortion : bool, optional
-        If one wants to track semi-triangular distortion, by default False
-    cutoff : _type_, optional
-        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
-    verbose : bool, optional
-        Prints statements as it computes, by default False
-
-    Returns
-    -------
-    NetworkX graph
-        The backbone subgraph.
-    
-    """
-    
-    G = D.copy()
-
-    ordered_nodes = sorted(G.degree(weight=weight), key=lambda x: x[1], reverse=True)
-
-    weight_function = _weight_function(G, weight)
-    
-    if verbose:
-        total = G.number_of_nodes()
-        i = 0
-    
-    metric_edges = []
-    edges = dict()
-                
-    for n, _ in ordered_nodes:
-        if verbose:
-            i += 1
-            per = i/total
-            print("Closure: Dijkstra : source node {u:s} : {i:d} of {total:d} ({per:.2%})".format(u=n, i=i, total=total, per=per))
-
-        if triangles:
-            neighbors = list(G.neighbors(n)) # Need to be separate or will raise changing list error
-            for idx in range(len(neighbors)):
-                for jdx in range(idx+1, len(neighbors)):
-                    if G.has_edge(neighbors[idx], neighbors[jdx]):
-                        distances = {(n, neighbors[idx]): G[n][neighbors[idx]][weight], (n, neighbors[jdx]): G[n][neighbors[jdx]][weight], (n, neighbors[jdx]): G[n][neighbors[jdx]][weight]}
-                        distances = [(edge, dist) for edge, dist in sorted(distances.items(), key=lambda item: item[1])]
-                        
-                        dist = disjunction([distances[0][1], distances[1][1]])
-                        if dist < distances[2][1]:
-                            G.remove_edge(distances[2][0])
-        
-        distances = {node: G[n][node][weight] for node in G.neighbors(n)}
-        edges[n] = []
-        for node, _ in sorted(distances.items(), key=lambda item: item[1]):
-            edges.append(node)
-            
-        W = []
-        metric = True
-        metric_edges.append((n, edges[n].pop(0)))
-        
-        while len(edges[n]) > 0:
-            e = edges[n].pop(0)
-            for m in metric_edges:
-                x = m[1]
-                W.append(disjunction([G[n][x][weight], G[x][edges[x].pop(0)]]))
-            
-            for w in W:
-                if G[n][e][weight] > w:
-                    metric = False
-                    break
-            
-            if metric:
-                metric_edges.append((n, e))
-                W = []
-            else:
-                break
-    
-    
-    g = G.copy()
-    g.remove_edges_from(metric_edges)
-    for u, v in g.edges():
-        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
-        if metric_dist[v] < g[u][v][weight]:
-            G.remove_edge((u, v))
-    
-    return G
 
 
 def drastic_disjunction(iterable):
