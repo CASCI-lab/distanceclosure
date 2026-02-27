@@ -10,6 +10,7 @@ These algorithms work with edges weighted as distances.
 import numpy as np
 import networkx as nx
 from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path
+from distanceclosure.closure import distance_closure
 from networkx.algorithms.shortest_paths.weighted import _weight_function
 
 __name__ = 'distanceclosure'
@@ -38,6 +39,55 @@ def ultrametric_backbone(D, weight='weight', distortion=False, self_loops=False,
     """
     
     return iterative_backbone(D, weight=weight, kind='ultrametric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+
+
+def backbone_from_closure(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+    """
+    Backbone computation considering the closure.
+
+    Parameters
+    ----------
+    D : NetworkX graph
+        The Distance graph
+    weight : str, optional
+        Edge property containing distance values, by default 'weight'
+    kind : str, optional
+        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
+    distortion : bool, optional
+        Whether to compute edge distortion from edges not in backbone, by default False
+    self_loops : bool, optional
+        If the distance graph has nodes with self distance greater than zero, by default False
+    cutoff : _type_, optional
+        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
+    verbose : bool, optional
+        Prints statements as it computes, by default False
+
+    Returns
+    -------
+    NetworkX graph
+        The backbone subgraph.
+
+    Raises
+    ------
+    NotImplementedError
+        Self-loop closure and finite step (cutoff) not implemented yet
+    """
+
+    if self_loops:
+        raise NotImplementedError
+    if cutoff is not None:
+        raise NotImplementedError
+
+    DC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, only_backbone=True, verbose=verbose, *args, **kwargs):
+    is_kind = 'is_{kind:s}'.format(kind=kind)
+    metric_edges [(u, v) for u, v in DC.edges() if DC[u][v][is_kind]]
+    G = DC.edge_subgraph(metric_edges).copy()
+    
+    if distortion:
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)         
+        return G, svals
+    else:
+        return G
 
 
 def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
@@ -184,25 +234,6 @@ def flagged_backbone(D, weight='weight', kind='metric', distortion=False, self_l
         return G, svals
     else:
         return G
-
-
-def _compute_distortions(D, B, weight='weight', disjunction=sum):
-    """
-    COMPUTE DISTORTIONS: UPDATE README
-    """
-    G = D.copy()
-    
-    G.remove_edges_from(B.edges())
-    weight_function = _weight_function(B, weight)
-
-    svals = dict()        
-    for u in G.nodes():
-        metric_dist = single_source_dijkstra_path_length(B, source=u, weight_function=weight_function, disjunction=disjunction)
-        for v in G.neighbors(u):
-            svals[(u, v)] = G[u][v][weight]/metric_dist[v]
-    
-    return svals   
-    
     
 
 def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
@@ -310,6 +341,24 @@ def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=
         return G, svals
     else:
         return G
+
+
+def _compute_distortions(D, B, weight='weight', disjunction=sum):
+    """
+    COMPUTE DISTORTIONS: UPDATE README
+    """
+    G = D.copy()
+    
+    G.remove_edges_from(B.edges())
+    weight_function = _weight_function(B, weight)
+
+    svals = dict()        
+    for u in G.nodes():
+        metric_dist = single_source_dijkstra_path_length(B, source=u, weight_function=weight_function, disjunction=disjunction)
+        for v in G.neighbors(u):
+            svals[(u, v)] = G[u][v][weight]/metric_dist[v]
+    
+    return svals   
 
 
 def drastic_disjunction(iterable):
