@@ -325,10 +325,9 @@ def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=
                 continue
     
     unlabeled_edges = [(u, v) for u, v in G.edges() if (u, v) not in metric_edges]
-    weight_function = _weight_function(G, weight)
 
     for u, v in unlabeled_edges:
-        Pu = single_source_target_dijkstra_path(G, source=u, target=v, weight_function=weight_function, disjunction=disjunction)
+        Pu = single_source_target_dijkstra_path(G, source=u, target=v, weight=weight, disjunction=disjunction)
         spl = disjunction([G[Pu[idx-1]][Pu[idx]][weight] for idx in range(1, len(Pu))])
         if G[u][v][weight] <= spl:
             metric_edges.add((u, v))
