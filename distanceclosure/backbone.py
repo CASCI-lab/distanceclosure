@@ -78,9 +78,14 @@ def backbone_from_closure(D, weight='weight', kind='metric', distortion=False, s
     if cutoff is not None:
         raise NotImplementedError
 
-    DC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, only_backbone=True, verbose=verbose, *args, **kwargs):
+    if kind == 'metric':
+        disjunction = sum
+    elif kind == 'ultrametric':
+        disjunction = max
+
+    DC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, only_backbone=True, verbose=verbose, *args, **kwargs)
     is_kind = 'is_{kind:s}'.format(kind=kind)
-    metric_edges [(u, v) for u, v in DC.edges() if DC[u][v][is_kind]]
+    metric_edges = [(u, v) for u, v in DC.edges() if DC[u][v][is_kind]]
     G = DC.edge_subgraph(metric_edges).copy()
     
     if distortion:
@@ -134,7 +139,7 @@ def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self
     elif kind == 'ultrametric':
         disjunction = max
     elif kind == 'drastic':
-        disjunction=drastic_disjunction
+         disjunction=drastic_disjunction
     
     G = D.copy()
     weight_function = _weight_function(G, weight)
@@ -147,7 +152,7 @@ def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self
         if verbose:
             i += 1
             per = i/total
-            print("Backbone: Iterative Dijkstra: {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per))
+            print("Iterative Backbone : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, kind=kind))
         
         metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
         for v in list(G.neighbors(u)):
@@ -213,11 +218,16 @@ def flagged_backbone(D, weight='weight', kind='metric', distortion=False, self_l
     weight_function = _weight_function(G, weight)
 
     B = nx.DiGraph() if nx.is_directed(G) else nx.Graph()
+
+    if verbose: 
+        total = G.number_of_nodes()
+        i = 0
+
     for u, _ in sorted(G.degree(weight=weight), key=lambda x: x[1]):
         if verbose:
             i += 1
             per = i/total
-            print("Backbone: Dijkstra: {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per))
+            print("Flagged Backbone : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, kind=kind))
 
         metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
         for v in list(G.neighbors(u)):
