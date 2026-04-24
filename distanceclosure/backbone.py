@@ -134,7 +134,7 @@ def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self
     elif kind == 'ultrametric':
         disjunction = max
     elif kind == 'drastic':
-         disjunction=drastic_disjunction
+        disjunction=drastic_disjunction
     
     G = D.copy()
     weight_function = _weight_function(G, weight)
