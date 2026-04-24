@@ -103,7 +103,7 @@ def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', on
         for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, disjunction=disjunction):
             if verbose:
                 per = i / total
-                print("Closure: Dijkstra : {kind:s} : source node {u:s} : {i:d} of {total:d} ({per:.2%})".format(kind=kind, u=u, i=i, total=total, per=per))
+                print("Distance Closure : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(kind=kind, i=i, total=total, per=per))
             for v, length in lengths.items():
 
                 if (u, v) in edges_seen or u == v:
