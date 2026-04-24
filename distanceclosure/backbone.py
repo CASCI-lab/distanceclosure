@@ -78,11 +78,6 @@ def backbone_from_closure(D, weight='weight', kind='metric', distortion=False, s
     if cutoff is not None:
         raise NotImplementedError
 
-    if kind == 'metric':
-        disjunction = sum
-    elif kind == 'ultrametric':
-        disjunction = max
-
     DC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, only_backbone=True, verbose=verbose, *args, **kwargs)
     is_kind = 'is_{kind:s}'.format(kind=kind)
     metric_edges = [(u, v) for u, v in DC.edges() if DC[u][v][is_kind]]
