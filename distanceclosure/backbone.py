@@ -21,6 +21,7 @@ __all__ = [
     "ultrametric_backbone",
     "iterative_backbone",
     "flagged_backbone",
+    "backbone_from_closure",
     "heuristic_undirected_backbone"
 ]
 
