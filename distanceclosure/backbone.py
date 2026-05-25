@@ -381,3 +381,174 @@ def _check_for_kind(kind):
     """
     if kind not in __kinds__:
         raise TypeError("Metric not found for this algorithm. Try 'metric' or 'ultrametric',")
+
+
+def test_heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+    """
+    Heuristic backbone computation combining triangle search (based on "V. Kalavri et al (2016) Proceedings of the VLDB Endowment, Volume 9, Issue 9") with :func:`iterative_backbone`.
+
+    Parameters
+    ----------
+    
+    D : NetworkX graph
+        The Distance graph
+    weight : str, optional
+        Edge property containing distance values, by default 'weight'
+    kind : str, optional
+        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
+    distortion : bool, optional
+        Whether to compute edge distortion from edges not in backbone, by default False
+    self_loops : bool, optional
+        If the distance graph has nodes with self distance greater than zero, by default False
+    cutoff : _type_, optional
+        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
+    verbose : bool, optional
+        Prints statements as it computes, by default False
+        
+    Returns
+    -------
+    NetworkX graph
+        The backbone subgraph.
+
+    Raises
+    ------
+    NotImplementedError
+        Self-loop closure and finite step (cutoff) not implemented yet
+
+    """
+    
+    from itertools import pairwise
+    
+    _check_for_kind(kind)
+    
+    if self_loops:
+        raise NotImplementedError
+    if cutoff is not None:
+        raise NotImplementedError
+    if nx.is_directed(D):
+        raise NotImplementedError
+    
+    if kind == 'metric':
+        disjunction = sum
+    elif kind == 'ultrametric':
+        disjunction = max
+    elif kind == 'drastic':
+        disjunction=drastic_disjunction
+        
+    G = D.copy()
+    
+    #print('Semi-metric Triangles')
+    for u in G.nodes():
+        for k in G.neighbors(u):
+            for v in G.neighbors(k):
+                if v in list(G.neighbors(u)) and disjunction([G[u][k][weight], G[k][v][weight]]) < G[u][v][weight]:
+                        G.remove_edge(u, v)
+                           
+    #print('Local Metric') 
+    metric_edges = set()
+    U = {v: [(x, d[weight]) for x, d in sorted(G[v].items(), key=lambda item: item[1][weight])] for v in G.nodes()} 
+    for v in G.nodes():
+        W = set()
+        metric = True
+        metric_edges.add((v, U[v].pop(0)[0]))
+        
+        while len(U[v]) > 0:
+            e = U[v].pop(0)
+            for _, x in metric_edges:
+                if G.has_edge(v, x) and len(U[x])>0:
+                    wx = disjunction([G[v][x][weight], U[x][0][1]])
+                    W.add(wx)
+                
+            for w in W:
+                if e[1] > w:
+                    metric = False
+                    break
+            
+            if metric:
+                metric_edges.add((v, e[0]))
+                W = set()
+            else:
+                continue
+    
+    unlabeled_edges = [(u, v) for u, v in G.edges() if (u, v) not in metric_edges]
+
+    for u, v in unlabeled_edges:
+        Pu = single_source_target_dijkstra_path(G, source=u, target=v, weight=weight, disjunction=disjunction)
+        spl = disjunction([G[Pu[idx-1]][Pu[idx]][weight] for idx in range(1, len(Pu))])
+        if G[u][v][weight] <= spl:
+            metric_edges.add((u, v))
+
+    G = G.edge_subgraph(metric_edges).copy()
+    
+    if distortion:
+        svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
+        return G, svals
+    else:
+        return G
+
+
+def test_heuristic_approximation_undirected_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+    """
+    Heuristic backbone computation combining triangle search (based on "V. Kalavri et al (2016) Proceedings of the VLDB Endowment, Volume 9, Issue 9") with :func:`iterative_backbone`.
+
+    Parameters
+    ----------
+    
+    D : NetworkX graph
+        The Distance graph
+    weight : str, optional
+        Edge property containing distance values, by default 'weight'
+    kind : str, optional
+        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
+    distortion : bool, optional
+        Whether to compute edge distortion from edges not in backbone, by default False
+    self_loops : bool, optional
+        If the distance graph has nodes with self distance greater than zero, by default False
+    cutoff : _type_, optional
+        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
+    verbose : bool, optional
+        Prints statements as it computes, by default False
+        
+    Returns
+    -------
+    NetworkX graph
+        The backbone subgraph.
+
+    Raises
+    ------
+    NotImplementedError
+        Self-loop closure and finite step (cutoff) not implemented yet
+
+    """
+    
+    from itertools import pairwise
+    
+    _check_for_kind(kind)
+    
+    if self_loops:
+        raise NotImplementedError
+    if cutoff is not None:
+        raise NotImplementedError
+    if nx.is_directed(D):
+        raise NotImplementedError
+    
+    if kind == 'metric':
+        disjunction = sum
+    elif kind == 'ultrametric':
+        disjunction = max
+    elif kind == 'drastic':
+        disjunction=drastic_disjunction
+        
+    G = D.copy()
+    
+    #print('Semi-metric Triangles')
+    for v in G.nodes():
+        possible_triangles = list(pairwise(G[v]))
+        for x, y in possible_triangles:
+            if G.has_edge(x, y):
+                if disjunction([G[x][y][weight], G[y][v][weight]]) < G[x][v][weight]:
+                    G.remove_edge(x, v)
+
+    return G
+
+
