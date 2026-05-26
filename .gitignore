@@ -10,6 +10,7 @@ setup.py
 # Test files
 sample_net.gpickle
 test_speed.py
+test_approximations.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
