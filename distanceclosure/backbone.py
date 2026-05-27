@@ -13,6 +13,7 @@ from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_
 from distanceclosure.closure import distance_closure
 from networkx.algorithms.shortest_paths.weighted import _weight_function
 from itertools import permutations, pairwise
+from collections.abc import Callable
 
 __name__ = 'distanceclosure'
 __author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe Xavier Costa <fcosta@binghamton.com>'])
@@ -23,7 +24,7 @@ __all__ = [
     "iterative_backbone",
     "flagged_backbone",
     "backbone_from_closure",
-    "heuristic_undirected_backbone"
+    "heuristic_backbone"
 ]
 
 __kinds__ = ['metric', 'ultrametric', 'drastic']
@@ -243,13 +244,20 @@ def flagged_backbone(D, weight='weight', kind='metric', distortion=False, self_l
         return G
     
 
-def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+def heuristic_backbone(
+        D: nx.Graph | nx.DiGraph, 
+        weight: str = 'weight', 
+        kind: str = 'metric', 
+        distortion: bool = False, 
+        self_loops: bool = False, 
+        cutoff: int = None, 
+        *args, **kwargs
+    ) -> nx.Graph | nx.DiGraph:
     """
-    Heuristic backbone computation combining triangle search (based on "V. Kalavri et al (2016) Proceedings of the VLDB Endowment, Volume 9, Issue 9") with :func:`iterative_backbone`.
+    Heuristic backbone computation combining triangle search (based on "V. Kalavri et al (2016) Proceedings of the VLDB Endowment, Volume 9, Issue 9")
 
     Parameters
     ----------
-    
     D : NetworkX graph
         The Distance graph
     weight : str, optional
@@ -262,9 +270,7 @@ def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=
         If the distance graph has nodes with self distance greater than zero, by default False
     cutoff : _type_, optional
         Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
-    verbose : bool, optional
-        Prints statements as it computes, by default False
-        
+
     Returns
     -------
     NetworkX graph
@@ -274,17 +280,12 @@ def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=
     ------
     NotImplementedError
         Self-loop closure and finite step (cutoff) not implemented yet
-
+    
     """
-    
-    
-    _check_for_kind(kind)
-    
+
     if self_loops:
         raise NotImplementedError
     if cutoff is not None:
-        raise NotImplementedError
-    if nx.is_directed(D):
         raise NotImplementedError
     
     if kind == 'metric':
@@ -296,50 +297,24 @@ def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=
         
     G = D.copy()
     
-    #print('Semi-metric Triangles')
-    for v in G.nodes():
-        possible_triangles = list(pairwise(G[v]))
-        for x, y in possible_triangles:
-            if G.has_edge(x, y):
-                if disjunction([G[x][y][weight], G[y][v][weight]]) < G[x][v][weight]:
-                    G.remove_edge(x, v)
-    
-    #print('Local Metric') 
-    metric_edges = set()
-    U = {v: [(x, d[weight]) for x, d in sorted(G[v].items(), key=lambda item: item[1][weight])] for v in G.nodes()} 
-    for v in G.nodes():
-        W = set()
-        metric = True
-        metric_edges.add((v, U[v].pop(0)[0]))
-        
-        while len(U[v]) > 0:
-            e = U[v].pop(0)
-            for _, x in metric_edges:
-                if G.has_edge(v, x) and len(U[x])>0:
-                    wx = disjunction([G[v][x][weight], U[x][0][1]])
-                    W.add(wx)
-                
-            for w in W:
-                if e[1] > w:
-                    metric = False
-                    break
-            
-            if metric:
-                metric_edges.add((v, e[0]))
-                W = set()
-            else:
-                continue
-    
-    unlabeled_edges = [(u, v) for u, v in G.edges() if (u, v) not in metric_edges]
+    if G.is_directed():
+        G = _algorithm_one_directed(G, weight=weight, disjunction=disjunction)
+    else:
+        G = _algorithm_one_undirected(G, weight=weight, disjunction=disjunction)
 
-    for u, v in unlabeled_edges:
-        Pu = single_source_target_dijkstra_path(G, source=u, target=v, weight=weight, disjunction=disjunction)
-        spl = disjunction([G[Pu[idx-1]][Pu[idx]][weight] for idx in range(1, len(Pu))])
-        if G[u][v][weight] <= spl:
-            metric_edges.add((u, v))
+    metric_edges = _algorithm_two(G, weight=weight, disjunction=disjunction)
 
-    G = G.edge_subgraph(metric_edges).copy()
-    G = iterative_backbone(G, weight=weight, kind=kind, distortion=distortion)
+    if G.is_directed():
+        metric_pairs = {(s, t) for s, t, _ in metric_edges}
+        unlabeled_edges = [(s, t) for s, t in G.edges() if (s, t) not in metric_pairs]
+    else:
+        metric_pairs = {_uniform_edge(s, t) for s, t, _ in metric_edges}
+        unlabeled_edges = [(s, t) for s, t in G.edges() if _uniform_edge(s, t) not in metric_pairs]
+
+    more_metric_edges = _algorithm_three(G, unlabeled_edges=unlabeled_edges, weight=weight, disjunction=disjunction)
+    final_edges = list(metric_pairs) + more_metric_edges
+
+    G = G.edge_subgraph(final_edges).copy()
 
     if distortion:
         svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
@@ -348,102 +323,49 @@ def heuristic_undirected_backbone(D, weight='weight', kind='metric', distortion=
         return G
 
 
-def directed_backbone_approximation(
-        D: nx.DiGraph, 
-        weight: str = "weight", 
-        kind: str = "metric", 
-        distortion: bool = False, 
-        self_loops: bool = False, 
-        cutoff: int = None, 
-        verbose: bool = False, 
-        *args, **kwargs
-    ) -> nx.DiGraph:
-    """
-    Algorithm that approximates the metric and ultrametric backbones of a directed weighted graph.
-    Source: https://dl.acm.org/doi/pdf/10.14778/2947618.2947623
-
-    *WORK IN PROGRESS*
-    """
-    _check_for_kind(kind)
-    
-    if self_loops:
-        raise NotImplementedError
-    
-    if cutoff is not None:
-        raise NotImplementedError
-    
-    if kind == 'metric':
-        disjunction = sum
-    elif kind == 'ultrametric':
-        disjunction = max
-    elif kind == 'drastic':
-        disjunction=drastic_disjunction
-
-    G = D.copy()
-
-    # Algorithm 1
-    for a in G.nodes():
-        for b, c in permutations(G[a], 2):
-            
-            if G.has_edge(a, b) and G.has_edge(b, c) and G.has_edge(c, a): 
-                bc = G[b][c][weight]
-                ca = G[c][a][weight]
-                ab = G[a][b][weight]
-                if disjunction([ bc, ca ]) < ab:
-                    G.remove_edge(a, b)
-    
-    return G
-
-
-def undirected_backbone_approximation(
-        D: nx.Graph, 
-        weight: str = 'weight', 
-        kind: str = 'metric', 
-        distortion: bool = False, 
-        self_loops: bool = False, 
-        cutoff: int = None, 
-        *args, **kwargs
-    ) -> nx.Graph:  
-    """
-    Algorithm that approximates the metric and ultrametric backbones of an undirected weighted graph.
-    Source: https://dl.acm.org/doi/pdf/10.14778/2947618.2947623
-    """
-
-    if self_loops:
-        raise NotImplementedError
-    if cutoff is not None:
-        raise NotImplementedError
-    if nx.is_directed(D):
-        raise NotImplementedError
-    
-    if kind == 'metric':
-        disjunction = sum
-    elif kind == 'ultrametric':
-        disjunction = max
-    elif kind == 'drastic':
-        disjunction=drastic_disjunction
+def drastic_disjunction(iterable):
         
-    G = D.copy()
-    
-    # Algorithm 1
-    for a in G.nodes():
-        triangles_to_check = list(pairwise(G[a])) 
-        for b, c in triangles_to_check:
-           if G.has_edge(b, c):
-            bc = G[b][c][weight]
-            ca = G[c][a][weight]
-            ba = G[b][a][weight]
-            if disjunction([ bc, ca ]) < ba:
-                    G.remove_edge(b, a)
+    iterable.sort()
+    if iterable[0] == 0.0:
+        return iterable[1]
+    else:
+        return np.inf   
 
-    # Algorithm 2
+
+def _algorithm_one_directed(graph: nx.DiGraph, weight: str, disjunction: Callable) -> nx.DiGraph:
+    for a in graph.nodes():
+        triangles_to_check = list(permutations(graph[a], 2)) 
+        for b, c in triangles_to_check:
+           if graph.has_edge(a, b) and graph.has_edge(b, c) and graph.has_edge(c, a):
+            bc = graph[b][c][weight]
+            ca = graph[c][a][weight]
+            ab = graph[a][b][weight]
+            if disjunction([ bc, ca ]) < ab:
+                    graph.remove_edge(a, b)
+    return graph
+
+
+def _algorithm_one_undirected(graph: nx.Graph, weight: str, disjunction: Callable) -> nx.Graph:
+    for a in graph.nodes():
+        triangles_to_check = list(pairwise(graph[a])) 
+        for b, c in triangles_to_check:
+           if graph.has_edge(b, c):
+            bc = graph[b][c][weight]
+            ca = graph[c][a][weight]
+            ba = graph[b][a][weight]
+            if disjunction([ bc, ca ]) < ba:
+                    graph.remove_edge(b, a)
+    return graph
+
+
+def _algorithm_two(graph: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable) -> nx.Graph | nx.DiGraph:
     U = {}
-    for s in G.nodes():
-        neighbors = [(s, t, data[weight]) for t, data in G[s].items()]
+    for s in graph.nodes():
+        neighbors = [(s, t, data[weight]) for t, data in graph[s].items()]
         U[s] = sorted(neighbors, key=lambda item: item[2])
 
     metric_edges = set()
-    for s in G.nodes():
+    for s in graph.nodes():
         if not U[s]:
             continue
 
@@ -456,8 +378,8 @@ def undirected_backbone_approximation(
         while U[s]:
             e = U[s].pop(0)
             for _, target, _ in metric_edges:
-                if G.has_edge(s, target) and U[target]:
-                    w_x = disjunction([G[s][target][weight], U[target][0][2]])
+                if graph.has_edge(s, target) and U[target]:
+                    w_x = disjunction([graph[s][target][weight], U[target][0][2]])
                     weights_for_comparison.add(w_x)
             
             for w in weights_for_comparison:
@@ -470,35 +392,26 @@ def undirected_backbone_approximation(
                 weights_for_comparison = set()
             else:
                 break
+    
+    return metric_edges
 
-    # Algorithm 3
-    metric_pairs = {_uniform_edge(s, t) for s, t, _ in metric_edges}
-    unlabeled = [(s, t) for s, t in G.edges() if _uniform_edge(s, t) not in metric_pairs]
 
+def _algorithm_three(graph: nx.Graph | nx.DiGraph, unlabeled_edges: list, weight: str, disjunction: Callable) -> list:
     more_metric_edges = []
-    for s, t in unlabeled:
+    for s, t in unlabeled_edges:
         Pu = single_source_target_dijkstra_path(
-            G, 
+            graph, 
             source=s, 
             target=t, 
             weight=weight, 
             disjunction=disjunction
         )
         
-        spl = disjunction([G[Pu[idx-1]][Pu[idx]][weight] for idx in range(1, len(Pu))])
-        if G[s][t][weight] <= spl:
+        spl = disjunction([graph[Pu[idx-1]][Pu[idx]][weight] for idx in range(1, len(Pu))])
+        if graph[s][t][weight] <= spl:
             more_metric_edges.append((s, t))
-
-    final_edges = list(metric_pairs) + more_metric_edges
-
-    G = G.edge_subgraph(final_edges).copy()
-    if distortion:
-        svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
-        return G, svals
-    else:
-        return G
     
-    return G
+    return more_metric_edges
 
 
 def _compute_distortions(D, B, weight='weight', disjunction=sum):
@@ -518,15 +431,6 @@ def _compute_distortions(D, B, weight='weight', disjunction=sum):
     
     return svals   
 
-
-def drastic_disjunction(iterable):
-        
-    iterable.sort()
-    if iterable[0] == 0.0:
-        return iterable[1]
-    else:
-        return np.inf
-    
 
 def _check_for_kind(kind):
     """
