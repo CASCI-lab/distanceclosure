@@ -293,23 +293,20 @@ def heuristic_backbone(
     elif kind == 'ultrametric':
         disjunction = max
     elif kind == 'drastic':
-        disjunction=drastic_disjunction
+        disjunction = drastic_disjunction
         
     G = D.copy()
+    directed = G.is_directed()
     
-    if G.is_directed():
+    if directed:
         G = _algorithm_one_directed(G, weight=weight, disjunction=disjunction)
     else:
         G = _algorithm_one_undirected(G, weight=weight, disjunction=disjunction)
 
     metric_edges = _algorithm_two(G, weight=weight, disjunction=disjunction)
 
-    if G.is_directed():
-        metric_pairs = {(s, t) for s, t, _ in metric_edges}
-        unlabeled_edges = [(s, t) for s, t in G.edges() if (s, t) not in metric_pairs]
-    else:
-        metric_pairs = {_uniform_edge(s, t) for s, t, _ in metric_edges}
-        unlabeled_edges = [(s, t) for s, t in G.edges() if _uniform_edge(s, t) not in metric_pairs]
+    metric_pairs = {_edge_key(s, t, directed) for s, t, _ in metric_edges}
+    unlabeled_edges = [(s, t) for s, t in G.edges() if _edge_key(s, t, directed) not in metric_pairs]
 
     more_metric_edges = _algorithm_three(G, unlabeled_edges=unlabeled_edges, weight=weight, disjunction=disjunction)
     final_edges = list(metric_pairs) + more_metric_edges
@@ -319,12 +316,11 @@ def heuristic_backbone(
     if distortion:
         svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
         return G, svals
-    else:
-        return G
+    
+    return G
 
 
 def drastic_disjunction(iterable):
-        
     iterable.sort()
     if iterable[0] == 0.0:
         return iterable[1]
@@ -442,3 +438,7 @@ def _check_for_kind(kind):
 
 def _uniform_edge(u: int, v: int) -> tuple[int, int]:
     return (u, v) if u < v else (v, u)
+
+
+def _edge_key(u: int, v: int, directed: bool) -> tuple[int, int]:
+    return (u, v) if directed else _uniform_edge(u, v)
