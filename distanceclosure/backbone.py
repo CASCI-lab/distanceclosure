@@ -358,17 +358,16 @@ def heuristic_backbone(
     # Algorithm 1, page 676
     if directed:
         G = _local_semi_triangles_directed(G, weight=weight, disjunction=disjunction)
+        if approximation:
+            return G
     else:
         G = _local_semi_triangles_undirected(G, weight=weight, disjunction=disjunction)
+        if approximation: 
+            return G
 
 
     # Algorithm 2, page 677
     backbone_edges = _local_triangular_edges(G, weight=weight, disjunction=disjunction)
-
-    if approximation:
-        for edge in backbone_edges:
-            G.remove_edge(edge[0], edge[1])
-        return G
 
     if directed:
         metric_backbone = {(source, target) for source, target, _ in backbone_edges}
