@@ -251,8 +251,9 @@ def heuristic_backbone(
         distortion: bool = False, 
         self_loops: bool = False, 
         cutoff: int = None, 
+        approximation: bool = False,
         *args, **kwargs
-    ) -> nx.Graph | nx.DiGraph:
+    ) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Heuristic backbone computation combining triangle search (based on "V. Kalavri et al (2016) Proceedings of the VLDB Endowment, Volume 9, Issue 9")
 
@@ -280,7 +281,7 @@ def heuristic_backbone(
     ------
     NotImplementedError
         Self-loop closure and finite step (cutoff) not implemented yet
-    
+
     """
 
     if self_loops:
@@ -294,27 +295,56 @@ def heuristic_backbone(
         disjunction = max
     elif kind == 'drastic':
         disjunction = drastic_disjunction
-        
+       
     G = D.copy()
     directed = G.is_directed()
-    
+
+
+    # Algorithm 1, page 676
     if directed:
-        G = _algorithm_one_directed(G, weight=weight, disjunction=disjunction)
+        G = _local_semi_triangles_directed(G, weight=weight, disjunction=disjunction)
     else:
-        G = _algorithm_one_undirected(G, weight=weight, disjunction=disjunction)
+        G = _local_semi_triangles_undirected(G, weight=weight, disjunction=disjunction)
 
-    metric_edges = _algorithm_two(G, weight=weight, disjunction=disjunction)
 
-    metric_pairs = {_edge_key(s, t, directed) for s, t, _ in metric_edges}
-    unlabeled_edges = [(s, t) for s, t in G.edges() if _edge_key(s, t, directed) not in metric_pairs]
+    # Algorithm 2, page 677
+    backbone_edges = _local_triangular_edges(G, weight=weight, disjunction=disjunction)
 
-    more_metric_edges = _algorithm_three(G, unlabeled_edges=unlabeled_edges, weight=weight, disjunction=disjunction)
-    final_edges = list(metric_pairs) + more_metric_edges
+    if approximation:
+        for edge in backbone_edges:
+            G.remove_edge(edge[0], edge[1])
+        return G
 
+    if directed:
+        metric_backbone = {(source, target) for source, target, _ in backbone_edges}
+        unlabeled_edges = [(source, target) for source, target in G.edges() if (source, target) not in metric_backbone]
+    else:
+        metric_backbone = {_uniform_edge(source, target) for source, target, _ in backbone_edges}
+        unlabeled_edges = [(source, target) for source, target in G.edges() if _uniform_edge(source, target) not in metric_backbone]
+
+
+    # Algorithm 3, page 677
+    remaining_metric_edges = []
+    for source, target in unlabeled_edges:
+        
+        Pu = single_source_target_dijkstra_path(
+            G, 
+            source=source, 
+            target=target, 
+            weight=weight, 
+            disjunction=disjunction
+        )
+        
+        spl = disjunction([G[Pu[idx-1]][Pu[idx]][weight] for idx in range(1, len(Pu))])
+        if G[source][target][weight] <= spl:
+            remaining_metric_edges.append((source, target))
+    
+    final_edges = list(metric_backbone) + remaining_metric_edges
     G = G.edge_subgraph(final_edges).copy()
 
+
     if distortion:
-        svals = _compute_distortions(D, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
+        svals = _compute_distortions(G, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
         return G, svals
     
     return G
@@ -328,54 +358,59 @@ def drastic_disjunction(iterable):
         return np.inf   
 
 
-def _algorithm_one_directed(graph: nx.DiGraph, weight: str, disjunction: Callable) -> nx.DiGraph:
+def _local_semi_triangles_directed(graph: nx.DiGraph, weight: str, disjunction: Callable) -> nx.DiGraph:
+    edges_to_remove = set()
     for a in graph.nodes():
-        triangles_to_check = list(permutations(graph[a], 2)) 
+        adjacent_edges = list(graph.successors(a))
+        for b, c in permutations(adjacent_edges, 2):
+            if graph.has_edge(c, b) and graph.has_edge(c, a):
+                ac = graph[a][c][weight]
+                cb = graph[c][b][weight]
+                ab = graph[a][b][weight]
+
+                if disjunction([ac, cb]) < ab:
+                    edges_to_remove.add((a, b))
+    graph.remove_edges_from(edges_to_remove)
+
+    return graph
+
+
+def _local_semi_triangles_undirected(graph: nx.Graph, weight: str, disjunction: Callable) -> nx.Graph:
+    for a in graph.nodes():
+        adjacent_edges = list(graph[a])
+        triangles_to_check = pairwise(adjacent_edges) 
         for b, c in triangles_to_check:
-           if graph.has_edge(a, b) and graph.has_edge(b, c) and graph.has_edge(c, a):
-            bc = graph[b][c][weight]
-            ca = graph[c][a][weight]
+           if graph.has_edge(c, b):
+            cb = graph[c][b][weight]
+            ac = graph[a][c][weight]
             ab = graph[a][b][weight]
-            if disjunction([ bc, ca ]) < ab:
+            if disjunction([ ac, cb ]) < ab:
                     graph.remove_edge(a, b)
     return graph
 
 
-def _algorithm_one_undirected(graph: nx.Graph, weight: str, disjunction: Callable) -> nx.Graph:
-    for a in graph.nodes():
-        triangles_to_check = list(pairwise(graph[a])) 
-        for b, c in triangles_to_check:
-           if graph.has_edge(b, c):
-            bc = graph[b][c][weight]
-            ca = graph[c][a][weight]
-            ba = graph[b][a][weight]
-            if disjunction([ bc, ca ]) < ba:
-                    graph.remove_edge(b, a)
-    return graph
-
-
-def _algorithm_two(graph: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable) -> nx.Graph | nx.DiGraph:
+def _local_triangular_edges(graph: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable) -> nx.Graph | nx.DiGraph:
     U = {}
-    for s in graph.nodes():
-        neighbors = [(s, t, data[weight]) for t, data in graph[s].items()]
-        U[s] = sorted(neighbors, key=lambda item: item[2])
+    for source in graph.nodes():
+        neighbors = [(source, target, data[weight]) for target, data in graph[source].items()]
+        U[source] = sorted(neighbors, key=lambda item: item[2])
 
     metric_edges = set()
-    for s in graph.nodes():
-        if not U[s]:
+    for source in graph.nodes():
+        if not U[source]:
             continue
 
         weights_for_comparison = set()
         metric = True
 
-        removed_pair = U[s].pop(0)
+        removed_pair = U[source].pop(0)
         metric_edges.add(removed_pair)
         
-        while U[s]:
-            e = U[s].pop(0)
+        while U[source]:
+            e = U[source].pop(0)
             for _, target, _ in metric_edges:
-                if graph.has_edge(s, target) and U[target]:
-                    w_x = disjunction([graph[s][target][weight], U[target][0][2]])
+                if graph.has_edge(source, target) and U[target]:
+                    w_x = disjunction([graph[source][target][weight], U[target][0][2]])
                     weights_for_comparison.add(w_x)
             
             for w in weights_for_comparison:
@@ -387,27 +422,7 @@ def _algorithm_two(graph: nx.Graph | nx.DiGraph, weight: str, disjunction: Calla
                 metric_edges.add(e)
                 weights_for_comparison = set()
             else:
-                break
-    
-    return metric_edges
-
-
-def _algorithm_three(graph: nx.Graph | nx.DiGraph, unlabeled_edges: list, weight: str, disjunction: Callable) -> list:
-    more_metric_edges = []
-    for s, t in unlabeled_edges:
-        Pu = single_source_target_dijkstra_path(
-            graph, 
-            source=s, 
-            target=t, 
-            weight=weight, 
-            disjunction=disjunction
-        )
-        
-        spl = disjunction([graph[Pu[idx-1]][Pu[idx]][weight] for idx in range(1, len(Pu))])
-        if graph[s][t][weight] <= spl:
-            more_metric_edges.append((s, t))
-    
-    return more_metric_edges
+                return metric_edges
 
 
 def _compute_distortions(D, B, weight='weight', disjunction=sum):
@@ -439,6 +454,3 @@ def _check_for_kind(kind):
 def _uniform_edge(u: int, v: int) -> tuple[int, int]:
     return (u, v) if u < v else (v, u)
 
-
-def _edge_key(u: int, v: int, directed: bool) -> tuple[int, int]:
-    return (u, v) if directed else _uniform_edge(u, v)
