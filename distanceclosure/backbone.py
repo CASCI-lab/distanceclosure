@@ -30,21 +30,56 @@ __all__ = [
 __kinds__ = ['metric', 'ultrametric', 'drastic']
 __algorithms__ = ['dense', 'dijkstra']
 
-def metric_backbone(D, weight='weight', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
-    """ Alias for :func:`iterative_backbone` with kind=metric.
+
+def metric_backbone(
+        D: nx.Graph | nx.DiGraph, 
+        weight: str = 'weight', 
+        distortion: bool = False, 
+        self_loops: bool = False, 
+        cutoff: int = None, 
+        verbose: bool = False, *
+        args, 
+        **kwargs
+    ) -> nx.Graph | nx.DiGraph:
+    """ 
+    
+    Alias for :func:`iterative_backbone` with kind=metric.
+    
     """
     
     return iterative_backbone(D, weight=weight, kind='metric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
 
 
-def ultrametric_backbone(D, weight='weight', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
-    """ Alias for :func:`iterative_backbone`  with kind=ultrametric.
+def ultrametric_backbone(
+        D: nx.Graph | nx.DiGraph, 
+        weight: str = 'weight', 
+        distortion: bool = False, 
+        self_loops: bool = False, 
+        cutoff: int = None, 
+        verbose: bool = False, 
+        *args, 
+        **kwargs
+    ) -> nx.Graph | nx.DiGraph:
+    """ 
+    
+    Alias for :func:`iterative_backbone`  with kind=ultrametric.
+    
     """
     
     return iterative_backbone(D, weight=weight, kind='ultrametric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
 
 
-def backbone_from_closure(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+def backbone_from_closure(
+        D: nx.Graph | nx.DiGraph, 
+        weight: str = 'weight', 
+        kind: str = 'metric', 
+        distortion: bool = False, 
+        self_loops: bool = False, 
+        cutoff: int = None, 
+        verbose: bool = False, 
+        *args, 
+        **kwargs
+    ):
     """
     Backbone computation considering the closure.
 
@@ -93,7 +128,17 @@ def backbone_from_closure(D, weight='weight', kind='metric', distortion=False, s
         return G
 
 
-def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+def iterative_backbone(
+        D: nx.Graph | nx.DiGraph, 
+        weight: str = 'weight', 
+        kind: str = 'metric', 
+        distortion: bool = False, 
+        self_loops: bool = False, 
+        cutoff: int = None, 
+        verbose: bool = False, 
+        *args, 
+        **kwargs
+    ) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict] :
     """
     Iterative backbone computation considering node ordering.
 
@@ -164,7 +209,17 @@ def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self
         return G
 
 
-def flagged_backbone(D, weight='weight', kind='metric', distortion=False, self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+def flagged_backbone(
+        D: nx.Graph | nx.DiGraph, 
+        weight: str = 'weight', 
+        kind: str = 'metric', 
+        distortion: bool = False, 
+        self_loops: bool = False, 
+        cutoff: int = None, 
+        verbose: bool = False, 
+        *args, 
+        **kwargs
+    ) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
 
     Iterative backbone computation where edges are flagged as belonging to the backbone if they are part of an indirect shortest-path.
@@ -350,7 +405,7 @@ def heuristic_backbone(
     return G
 
 
-def drastic_disjunction(iterable):
+def drastic_disjunction(iterable: list[float]) -> float:
     iterable.sort()
     if iterable[0] == 0.0:
         return iterable[1]
@@ -425,7 +480,12 @@ def _local_triangular_edges(graph: nx.Graph | nx.DiGraph, weight: str, disjuncti
                 return metric_edges
 
 
-def _compute_distortions(D, B, weight='weight', disjunction=sum):
+def _compute_distortions(
+        D: nx.Graph | nx.DiGraph, 
+        B: nx.Graph | nx.DiGraph, 
+        weight: str = 'weight', 
+        disjunction: Callable = sum
+    ) -> dict:
     """
     COMPUTE DISTORTIONS: UPDATE README
     """
@@ -443,7 +503,7 @@ def _compute_distortions(D, B, weight='weight', disjunction=sum):
     return svals   
 
 
-def _check_for_kind(kind):
+def _check_for_kind(kind: str) -> None:
     """
     Check for available metric functions.
     """
