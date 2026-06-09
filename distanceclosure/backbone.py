@@ -379,7 +379,7 @@ def heuristic_backbone(
             disjunction=disjunction
         )
         
-        path_weights = [G[Pu[idx-1]][Pu[idx]][weight] for idx in range(1, len(path))]
+        path_weights = [G[path[idx-1]][path[idx]][weight] for idx in range(1, len(path))]
         shortest_path_length = disjunction(path_weights)
 
         if G[source][target][weight] <= shortest_path_length:
@@ -416,7 +416,7 @@ def _local_semi_triangles(graph: nx.Graph | nx.DiGraph, weight: str, disjunction
         neighbors = list(graph[a])
         triangles_to_check = product(neighbors, neighbors)
         for b, c in triangles_to_check:
-            if graph.has_edge(c, b):
+            if graph.has_edge(a, c) and graph.has_edge(c, b) and graph.has_edge(a, b):
                 ac = graph[a][c][weight]
                 cb = graph[c][b][weight]
                 ab = graph[a][b][weight]
