@@ -12,7 +12,7 @@ import networkx as nx
 from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path
 from distanceclosure.closure import distance_closure
 from networkx.algorithms.shortest_paths.weighted import _weight_function
-from itertools import permutations, pairwise
+from itertools import permutations, pairwise, product
 from collections.abc import Callable
 
 __name__ = 'distanceclosure'
@@ -306,7 +306,7 @@ def heuristic_backbone(
         distortion: bool = False, 
         self_loops: bool = False, 
         cutoff: int = None, 
-        approximation: bool = False,
+        approx: bool = False,
         *args, **kwargs
     ) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
@@ -314,8 +314,8 @@ def heuristic_backbone(
 
     Parameters
     ----------
-    D : NetworkX graph
-        The Distance graph
+    D : Directed or undirected NetworkX graph
+        The weighted distance graph
     weight : str, optional
         Edge property containing distance values, by default 'weight'
     kind : str, optional
@@ -324,13 +324,15 @@ def heuristic_backbone(
         Whether to compute edge distortion from edges not in backbone, by default False
     self_loops : bool, optional
         If the distance graph has nodes with self distance greater than zero, by default False
-    cutoff : _type_, optional
+    cutoff : int, optional
         Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
+    approx : bool, optional
+        Approximates the backbone
 
     Returns
     -------
-    NetworkX graph
-        The backbone subgraph.
+    Directed or undirected NetworkX graph
+        The backbone subgraph
 
     Raises
     ------
@@ -352,36 +354,24 @@ def heuristic_backbone(
         disjunction = drastic_disjunction
        
     G = D.copy()
-    directed = G.is_directed()
-
 
     # Algorithm 1, page 676
-    if directed:
-        G = _local_semi_triangles_directed(G, weight=weight, disjunction=disjunction)
-        if approximation:
-            return G
-    else:
-        G = _local_semi_triangles_undirected(G, weight=weight, disjunction=disjunction)
-        if approximation: 
-            return G
-
+    G = _local_semi_triangles(G, weight=weight, disjunction=disjunction)
+    if approx:
+        return G
 
     # Algorithm 2, page 677
     backbone_edges = _local_triangular_edges(G, weight=weight, disjunction=disjunction)
 
-    if directed:
-        metric_backbone = {(source, target) for source, target, _ in backbone_edges}
-        unlabeled_edges = [(source, target) for source, target in G.edges() if (source, target) not in metric_backbone]
-    else:
-        metric_backbone = {_uniform_edge(source, target) for source, target, _ in backbone_edges}
-        unlabeled_edges = [(source, target) for source, target in G.edges() if _uniform_edge(source, target) not in metric_backbone]
+    metric_backbone = {(source, target) for source, target, _ in backbone_edges}
+    unlabeled_edges = [(source, target) for source, target in G.edges() if (source, target) not in metric_backbone]
 
 
     # Algorithm 3, page 677
     remaining_metric_edges = []
     for source, target in unlabeled_edges:
         
-        Pu = single_source_target_dijkstra_path(
+        path = single_source_target_dijkstra_path(
             G, 
             source=source, 
             target=target, 
@@ -389,16 +379,25 @@ def heuristic_backbone(
             disjunction=disjunction
         )
         
-        spl = disjunction([G[Pu[idx-1]][Pu[idx]][weight] for idx in range(1, len(Pu))])
-        if G[source][target][weight] <= spl:
+        path_weights = [G[Pu[idx-1]][Pu[idx]][weight] for idx in range(1, len(path))]
+        shortest_path_length = disjunction(path_weights)
+
+        if G[source][target][weight] <= shortest_path_length:
             remaining_metric_edges.append((source, target))
     
     final_edges = list(metric_backbone) + remaining_metric_edges
     G = G.edge_subgraph(final_edges).copy()
 
-
+    # Compute Distortion
     if distortion:
-        svals = _compute_distortions(G, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
+        svals = _compute_distortions(
+            G, 
+            weight=weight, 
+            disjunction=disjunction, 
+            distortion=distortion, 
+            *args, 
+            **kwargs
+        )
         return G, svals
     
     return G
@@ -412,33 +411,16 @@ def drastic_disjunction(iterable: list[float]) -> float:
         return np.inf   
 
 
-def _local_semi_triangles_directed(graph: nx.DiGraph, weight: str, disjunction: Callable) -> nx.DiGraph:
-    edges_to_remove = set()
+def _local_semi_triangles(graph: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable) -> nx.Graph | nx.DiGraph:
     for a in graph.nodes():
-        adjacent_edges = list(graph.successors(a))
-        for b, c in permutations(adjacent_edges, 2):
-            if graph.has_edge(c, b) and graph.has_edge(c, a):
+        neighbors = list(graph[a])
+        triangles_to_check = product(neighbors, neighbors)
+        for b, c in triangles_to_check:
+            if graph.has_edge(c, b):
                 ac = graph[a][c][weight]
                 cb = graph[c][b][weight]
                 ab = graph[a][b][weight]
-
-                if disjunction([ac, cb]) < ab:
-                    edges_to_remove.add((a, b))
-    graph.remove_edges_from(edges_to_remove)
-
-    return graph
-
-
-def _local_semi_triangles_undirected(graph: nx.Graph, weight: str, disjunction: Callable) -> nx.Graph:
-    for a in graph.nodes():
-        adjacent_edges = list(graph[a])
-        triangles_to_check = pairwise(adjacent_edges) 
-        for b, c in triangles_to_check:
-           if graph.has_edge(c, b):
-            cb = graph[c][b][weight]
-            ac = graph[a][c][weight]
-            ab = graph[a][b][weight]
-            if disjunction([ ac, cb ]) < ab:
+                if disjunction([ cb, ac ]) < ab:
                     graph.remove_edge(a, b)
     return graph
 
