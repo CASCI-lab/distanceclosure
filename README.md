@@ -11,7 +11,7 @@ This package implements methods to calculate the Distance Closure of Complex Net
 Installation
 ---------------
 
-Latest development release on GitHub (v0.6.1):
+Latest development release on GitHub (v0.7):
 
 ```
 pip install git+https://github.com/CASCI-lab/distanceclosure
@@ -105,6 +105,9 @@ Pull requests are welcome :) Please get in touch beforehand: `fcosta(at)binghamt
 
 Changelog
 ---------
+
+v0.7
+- Implemented "self-loop" backbone comparison
 
 v0.6.1
 - Remove leaked code
