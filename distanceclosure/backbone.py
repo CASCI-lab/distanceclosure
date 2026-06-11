@@ -9,7 +9,7 @@ These algorithms work with edges weighted as distances.
 
 import numpy as np
 import networkx as nx
-from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path
+from distanceclosure.dijkstra import single_source_dijkstra_path_length, source_target_dijkstra_path_length
 from networkx.algorithms.shortest_paths.weighted import _weight_function
 
 __name__ = 'distanceclosure'
@@ -70,8 +70,6 @@ def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self
     
     _check_for_kind(kind)
     
-    if self_loops:
-        raise NotImplementedError
     if cutoff is not None:
         raise NotImplementedError
     
@@ -99,6 +97,19 @@ def iterative_backbone(D, weight='weight', kind='metric', distortion=False, self
         for v in list(G.neighbors(u)):
             if metric_dist[v] < G[u][v][weight]:
                 G.remove_edge(u, v)
+    
+    if self_loops:
+        semi_trig_loops = []
+        for u in nx.nodes_with_selfloops(G):
+            spl = G[u][u][weight]
+            for k in G.neighbors(u):
+                if k != u:
+                    rpl = source_target_dijkstra_path_length(G, source=k, target=u, weight=weight, disjunction=disjunction)
+                    spl = min(spl, disjunction([G[u][k][weight], rpl]))
+            
+            if spl < G[u][u][weight]:
+                semi_trig_loops.append((u, u))        
+        G.remove_edges_from(semi_trig_loops)
     
     if distortion:
         svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)         
