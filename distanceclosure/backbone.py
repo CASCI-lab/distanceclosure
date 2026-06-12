@@ -12,7 +12,7 @@ import networkx as nx
 from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path
 from distanceclosure.closure import distance_closure
 from networkx.algorithms.shortest_paths.weighted import _weight_function
-from itertools import permutations, pairwise, product
+from itertools import product
 from collections.abc import Callable
 
 __name__ = 'distanceclosure'
@@ -490,8 +490,4 @@ def _check_for_kind(kind: str) -> None:
     """
     if kind not in __kinds__:
         raise TypeError("Metric not found for this algorithm. Try 'metric' or 'ultrametric',")
-
-
-def _uniform_edge(u: int, v: int) -> tuple[int, int]:
-    return (u, v) if u < v else (v, u)
 
