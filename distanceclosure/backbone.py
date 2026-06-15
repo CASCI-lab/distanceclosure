@@ -12,8 +12,8 @@ import networkx as nx
 from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path
 from distanceclosure.closure import distance_closure
 from networkx.algorithms.shortest_paths.weighted import _weight_function
-from itertools import product
 from collections.abc import Callable
+from itertools import product
 
 __name__ = 'distanceclosure'
 __author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe Xavier Costa <fcosta@binghamton.com>'])
@@ -37,8 +37,8 @@ def metric_backbone(
         distortion: bool = False, 
         self_loops: bool = False, 
         cutoff: int = None, 
-        verbose: bool = False, *
-        args, 
+        verbose: bool = False, 
+        *args, 
         **kwargs
     ) -> nx.Graph | nx.DiGraph:
     """ 
@@ -47,7 +47,17 @@ def metric_backbone(
     
     """
     
-    return iterative_backbone(D, weight=weight, kind='metric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+    return iterative_backbone(
+        D, 
+        weight=weight, 
+        kind='metric', 
+        distortion=distortion, 
+        self_loops=self_loops, 
+        cutoff=cutoff, 
+        verbose=verbose, 
+        *args, 
+        **kwargs
+    )
 
 
 def ultrametric_backbone(
@@ -66,7 +76,17 @@ def ultrametric_backbone(
     
     """
     
-    return iterative_backbone(D, weight=weight, kind='ultrametric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+    return iterative_backbone(
+        D, 
+        weight=weight, 
+        kind='ultrametric', 
+        distortion=distortion, 
+        self_loops=self_loops, 
+        cutoff=cutoff, 
+        verbose=verbose, 
+        *args, 
+        **kwargs
+    )
 
 
 def backbone_from_closure(
@@ -116,7 +136,17 @@ def backbone_from_closure(
     if cutoff is not None:
         raise NotImplementedError
 
-    DC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, only_backbone=True, verbose=verbose, *args, **kwargs)
+    DC = distance_closure(
+        D, 
+        kind=kind, 
+        algorithm='dijkstra', 
+        weight=weight, 
+        only_backbone=True, 
+        verbose=verbose, 
+        *args, 
+        **kwargs
+    )
+
     is_kind = 'is_{kind:s}'.format(kind=kind)
     metric_edges = [(u, v) for u, v in DC.edges() if DC[u][v][is_kind]]
     G = DC.edge_subgraph(metric_edges).copy()
@@ -197,13 +227,25 @@ def iterative_backbone(
             per = i/total
             print("Iterative Backbone : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, kind=kind))
         
-        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
+        metric_dist = single_source_dijkstra_path_length(
+            G, 
+            source=u, 
+            weight_function=weight_function, 
+            disjunction=disjunction
+        )
+
         for v in list(G.neighbors(u)):
             if metric_dist[v] < G[u][v][weight]:
                 G.remove_edge(u, v)
     
     if distortion:
-        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)         
+        svals = _compute_distortions(
+            D, 
+            G, 
+            weight=weight, 
+            disjunction=disjunction
+        )        
+
         return G, svals
     else:
         return G
@@ -282,7 +324,13 @@ def flagged_backbone(
             per = i/total
             print("Flagged Backbone : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, kind=kind))
 
-        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
+        metric_dist = single_source_dijkstra_path_length(
+            G, 
+            source=u, 
+            weight_function=weight_function, 
+            disjunction=disjunction
+        )
+
         for v in list(G.neighbors(u)):
             if metric_dist[v] < G[u][v][weight]:
                 G.remove_edge(u, v)
@@ -293,7 +341,13 @@ def flagged_backbone(
             break    
     
     if distortion:
-        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)
+        svals = _compute_distortions(
+            D, 
+            G, 
+            weight=weight, 
+            disjunction=disjunction
+        )
+
         return G, svals
     else:
         return G
@@ -361,7 +415,11 @@ def heuristic_backbone(
         return G
 
     # Algorithm 2, page 677
-    backbone_edges = _local_triangular_edges(G, weight=weight, disjunction=disjunction)
+    backbone_edges = _local_triangular_edges(
+        G, 
+        weight=weight, 
+        disjunction=disjunction
+    )
 
     metric_backbone = {(source, target) for source, target, _ in backbone_edges}
     unlabeled_edges = [(source, target) for source, target in G.edges() if (source, target) not in metric_backbone]
@@ -477,7 +535,13 @@ def _compute_distortions(
 
     svals = dict()        
     for u in G.nodes():
-        metric_dist = single_source_dijkstra_path_length(B, source=u, weight_function=weight_function, disjunction=disjunction)
+        metric_dist = single_source_dijkstra_path_length(
+            B, 
+            source=u, 
+            weight_function=weight_function, 
+            disjunction=disjunction
+        )
+        
         for v in G.neighbors(u):
             svals[(u, v)] = G[u][v][weight]/metric_dist[v]
     
