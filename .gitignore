@@ -2,6 +2,7 @@
 .DS_Store
 distanceclosure/notest.py
 experiments/
+uv.lock
 
 # Old Files
 old_README.md
