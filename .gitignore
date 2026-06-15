@@ -2,7 +2,6 @@
 .DS_Store
 distanceclosure/notest.py
 experiments/
-uv.lock
 
 # Old Files
 old_README.md
@@ -11,7 +10,6 @@ setup.py
 # Test files
 sample_net.gpickle
 test_speed.py
-test_heuristic.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
