@@ -476,6 +476,8 @@ def _local_triangular_edges(graph: nx.Graph | nx.DiGraph, weight: str = 'weight'
                 weights_for_comparison = set()
             else:
                 return metric_edges
+            
+    return metric_edges
 
 
 def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str = 'metric') -> dict:
