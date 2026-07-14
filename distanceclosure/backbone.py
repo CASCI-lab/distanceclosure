@@ -12,7 +12,6 @@ import networkx as nx
 from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path
 from distanceclosure.closure import distance_closure
 from networkx.algorithms.shortest_paths.weighted import _weight_function
-from collections.abc import Callable
 from itertools import product
 
 __name__ = 'distanceclosure'
@@ -33,9 +32,7 @@ __algorithms__ = ['dense', 'dijkstra']
 
 def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """ 
-    
     Alias for :func:`iterative_backbone` with kind=metric.
-    
     """
     
     return iterative_backbone(D, weight=weight, kind='metric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
@@ -43,9 +40,7 @@ def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', distortion
 
 def ultrametric_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """ 
-    
     Alias for :func:`iterative_backbone`  with kind=ultrametric.
-    
     """
     
     return iterative_backbone(D, weight=weight, kind='ultrametric', distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
@@ -95,7 +90,7 @@ def backbone_from_closure(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind
     G = DC.edge_subgraph(metric_edges).copy()
     
     if distortion:
-        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)         
+        svals = _compute_distortions(D, G, weight=weight, kind=kind)         
         return G, svals
     else:
         return G
@@ -167,8 +162,79 @@ def iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: s
                 G.remove_edge(u, v)
     
     if distortion:
-        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)        
+        svals = _compute_distortions(D, G, weight=weight, kind=kind)        
+        return G, svals
+    else:
+        return G
 
+
+def iterative_backbone_unordered(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str = 'metric', distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+    """
+    Iterative backbone computation.
+
+    Parameters
+    ----------
+    D : NetworkX graph
+        The Distance graph
+    weight : str, optional
+        Edge property containing distance values, by default 'weight'
+    kind : str, optional
+        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
+    distortion : bool, optional
+        Whether to compute edge distortion from edges not in backbone, by default False
+    self_loops : bool, optional
+        If the distance graph has nodes with self distance greater than zero, by default False
+    cutoff : _type_, optional
+        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
+    verbose : bool, optional
+        Prints statements as it computes, by default False
+
+    Returns
+    -------
+    NetworkX graph
+        The backbone subgraph.
+
+    Raises
+    ------
+    NotImplementedError
+        Self-loop closure and finite step (cutoff) not implemented yet
+    """
+    
+    _check_for_kind(kind)
+    
+    if self_loops:
+        raise NotImplementedError
+    if cutoff is not None:
+        raise NotImplementedError
+    
+    if kind == 'metric':
+        disjunction = sum
+    elif kind == 'ultrametric':
+        disjunction = max
+    elif kind == 'drastic':
+        disjunction = drastic_disjunction
+    
+    G = D.copy()
+    weight_function = _weight_function(G, weight)
+    
+    if verbose:
+        total = G.number_of_nodes()
+        i = 0
+    
+    for u in list(G.nodes()):
+        if verbose:
+            i += 1
+            per = i/total
+            print("Iterative Backbone : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, kind=kind))
+        
+        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
+
+        for v in list(G.neighbors(u)):
+            if metric_dist[v] < G[u][v][weight]:
+                G.remove_edge(u, v)
+    
+    if distortion:
+        svals = _compute_distortions(D, G, weight=weight, kind=kind)        
         return G, svals
     else:
         return G
@@ -249,8 +315,7 @@ def flagged_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str
             break    
     
     if distortion:
-        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)
-
+        svals = _compute_distortions(D, G, weight=weight, kind=kind)
         return G, svals
     else:
         return G
@@ -304,12 +369,12 @@ def heuristic_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: s
     G = D.copy()
 
     # Algorithm 1, page 676
-    G = _local_semi_triangles(G, weight=weight, disjunction=disjunction)
+    G = _local_semi_triangles(G, weight=weight, kind=kind)
     if approx:
         return G
 
     # Algorithm 2, page 677
-    backbone_edges = _local_triangular_edges(G, weight=weight, disjunction=disjunction)
+    backbone_edges = _local_triangular_edges(G, weight=weight, kind=kind)
 
     metric_backbone = {(source, target) for source, target, _ in backbone_edges}
     unlabeled_edges = [(source, target) for source, target in G.edges() if (source, target) not in metric_backbone]
@@ -332,10 +397,10 @@ def heuristic_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: s
 
     # Compute Distortion
     if distortion:
-        svals = _compute_distortions(G, weight=weight, disjunction=disjunction, distortion=distortion, *args, **kwargs)
+        svals = _compute_distortions(D, G, weight=weight, kind=kind)
         return G, svals
-    
-    return G
+    else:
+        return G
 
 
 def drastic_disjunction(iterable: list[float]) -> float:
@@ -346,7 +411,15 @@ def drastic_disjunction(iterable: list[float]) -> float:
         return np.inf   
 
 
-def _local_semi_triangles(graph: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable) -> nx.Graph | nx.DiGraph:
+def _local_semi_triangles(graph: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str = 'metric') -> nx.Graph | nx.DiGraph:
+
+    if kind == 'metric':
+        disjunction = sum
+    elif kind == 'ultrametric':
+        disjunction = max
+    elif kind == 'drastic':
+        disjunction = drastic_disjunction
+    
     for a in graph.nodes():
         neighbors = list(graph[a])
         triangles_to_check = product(neighbors, neighbors)
@@ -360,7 +433,16 @@ def _local_semi_triangles(graph: nx.Graph | nx.DiGraph, weight: str, disjunction
     return graph
 
 
-def _local_triangular_edges(graph: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable) -> nx.Graph | nx.DiGraph:
+def _local_triangular_edges(graph: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str = 'metric') -> nx.Graph | nx.DiGraph:
+    
+
+    if kind == 'metric':
+        disjunction = sum
+    elif kind == 'ultrametric':
+        disjunction = max
+    elif kind == 'drastic':
+        disjunction = drastic_disjunction
+    
     U = {}
     for source in graph.nodes():
         neighbors = [(source, target, data[weight]) for target, data in graph[source].items()]
@@ -396,10 +478,34 @@ def _local_triangular_edges(graph: nx.Graph | nx.DiGraph, weight: str, disjuncti
                 return metric_edges
 
 
-def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, weight: str = 'weight', disjunction: Callable = sum) -> dict:
+def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str = 'metric') -> dict:
     """
-    COMPUTE DISTORTIONS: UPDATE README
+    Compute distortions of edges not in backbone.
+
+    Parameters
+    ----------
+    D : Directed or undirected NetworkX distance graph
+        The weighted distance graph
+    B : Directed or undirected NetworkX backbone graph
+        The weighted backbone subgraph
+    weight : str, optional
+        Edge property containing distance values, by default 'weight'
+    kind : str, optional
+        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
+
+    Returns
+    -------
+    Dictionary keyed by edge with its distortion value.
+    
     """
+
+    if kind == 'metric':
+        disjunction = sum
+    elif kind == 'ultrametric':
+        disjunction = max
+    elif kind == 'drastic':
+        disjunction = drastic_disjunction
+    
     G = D.copy()
     
     G.remove_edges_from(B.edges())
@@ -415,7 +521,7 @@ def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, wei
     return svals   
 
 
-def _check_for_kind(kind: str) -> None:
+def _check_for_kind(kind: str = 'metric') -> None:
     """
     Check for available metric functions.
     """
