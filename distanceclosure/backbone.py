@@ -98,78 +98,6 @@ def backbone_from_closure(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind
 
 def iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str = 'metric', distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
-    Iterative backbone computation considering node ordering.
-
-    Parameters
-    ----------
-    D : NetworkX graph
-        The Distance graph
-    weight : str, optional
-        Edge property containing distance values, by default 'weight'
-    kind : str, optional
-        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
-    distortion : bool, optional
-        Whether to compute edge distortion from edges not in backbone, by default False
-    self_loops : bool, optional
-        If the distance graph has nodes with self distance greater than zero, by default False
-    cutoff : _type_, optional
-        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
-    verbose : bool, optional
-        Prints statements as it computes, by default False
-
-    Returns
-    -------
-    NetworkX graph
-        The backbone subgraph.
-
-    Raises
-    ------
-    NotImplementedError
-        Self-loop closure and finite step (cutoff) not implemented yet
-    """
-    
-    _check_for_kind(kind)
-    
-    if self_loops:
-        raise NotImplementedError
-    if cutoff is not None:
-        raise NotImplementedError
-    
-    if kind == 'metric':
-        disjunction = sum
-    elif kind == 'ultrametric':
-        disjunction = max
-    elif kind == 'drastic':
-        disjunction = drastic_disjunction
-    
-    G = D.copy()
-    weight_function = _weight_function(G, weight)
-    
-    if verbose:
-        total = G.number_of_nodes()
-        i = 0
-    
-    for u, _ in sorted(G.degree(weight=weight), key=lambda x: x[1]):
-        if verbose:
-            i += 1
-            per = i/total
-            print("Iterative Backbone : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, kind=kind))
-        
-        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
-
-        for v in list(G.neighbors(u)):
-            if metric_dist[v] < G[u][v][weight]:
-                G.remove_edge(u, v)
-    
-    if distortion:
-        svals = _compute_distortions(D, G, weight=weight, kind=kind)        
-        return G, svals
-    else:
-        return G
-
-
-def iterative_backbone_unordered(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str = 'metric', distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
-    """
     Iterative backbone computation.
 
     Parameters
@@ -222,6 +150,78 @@ def iterative_backbone_unordered(D: nx.Graph | nx.DiGraph, weight: str = 'weight
         i = 0
     
     for u in list(G.nodes()):
+        if verbose:
+            i += 1
+            per = i/total
+            print("Iterative Backbone : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, kind=kind))
+        
+        metric_dist = single_source_dijkstra_path_length(G, source=u, weight_function=weight_function, disjunction=disjunction)
+
+        for v in list(G.neighbors(u)):
+            if metric_dist[v] < G[u][v][weight]:
+                G.remove_edge(u, v)
+    
+    if distortion:
+        svals = _compute_distortions(D, G, weight=weight, kind=kind)        
+        return G, svals
+    else:
+        return G
+
+
+def iterative_backbone_ordered(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str = 'metric', distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+    """
+    Iterative backbone computation considering node ordering. 
+
+    Parameters
+    ----------
+    D : NetworkX graph
+        The Distance graph
+    weight : str, optional
+        Edge property containing distance values, by default 'weight'
+    kind : str, optional
+        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
+    distortion : bool, optional
+        Whether to compute edge distortion from edges not in backbone, by default False
+    self_loops : bool, optional
+        If the distance graph has nodes with self distance greater than zero, by default False
+    cutoff : _type_, optional
+        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
+    verbose : bool, optional
+        Prints statements as it computes, by default False
+
+    Returns
+    -------
+    NetworkX graph
+        The backbone subgraph.
+
+    Raises
+    ------
+    NotImplementedError
+        Self-loop closure and finite step (cutoff) not implemented yet
+    """
+    
+    _check_for_kind(kind)
+    
+    if self_loops:
+        raise NotImplementedError
+    if cutoff is not None:
+        raise NotImplementedError
+    
+    if kind == 'metric':
+        disjunction = sum
+    elif kind == 'ultrametric':
+        disjunction = max
+    elif kind == 'drastic':
+        disjunction = drastic_disjunction
+    
+    G = D.copy()
+    weight_function = _weight_function(G, weight)
+    
+    if verbose:
+        total = G.number_of_nodes()
+        i = 0
+    
+    for u, _ in sorted(G.degree(weight=weight), key=lambda x: x[1]):
         if verbose:
             i += 1
             per = i/total
@@ -297,7 +297,7 @@ def flagged_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str
         total = G.number_of_nodes()
         i = 0
 
-    for u, _ in sorted(G.degree(weight=weight), key=lambda x: x[1]):
+    for u in list(G.nodes()):
         if verbose:
             i += 1
             per = i/total
