@@ -16,11 +16,12 @@ __author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe X
 __all__ = [
     "all_pairs_dijkstra_path_length",
     "single_source_dijkstra_path_length",
-    "single_source_target_dijkstra_path"
+    "single_source_target_dijkstra_path",
+    "single_source_neighbors_dijkstra_path_length"
 ]
 
 def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
-    """Compute shortest path lengths between all nodes in a weighted graph.
+    """Computes shortest path lengths between all nodes in a weighted graph.
 
     Parameters
     ----------
@@ -72,12 +73,11 @@ def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
 
     The dictionary returned only has keys for reachable node pairs.
     """
-    weight_function = _weight_function(G, weight)
     for n in G:
-        yield (n, single_source_dijkstra_path_length(G, source=n, weight_function=weight_function, disjunction=disjunction))
+        yield (n, single_source_dijkstra_path_length(G, source=n, weight=weight, disjunction=disjunction))
 
 
-def single_source_dijkstra_path_length(G, source, weight_function, paths=None, disjunction=sum):
+def single_source_dijkstra_path_length(G, source, weight="weight", paths=None, disjunction=sum):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted paths
 
     Parameters
@@ -117,6 +117,7 @@ def single_source_dijkstra_path_length(G, source, weight_function, paths=None, d
 
     """
     G_succ = G._succ if G.is_directed() else G._adj
+    weight_function = _weight_function(G, weight)
 
     push = heappush
     pop = heappop
@@ -153,7 +154,7 @@ def single_source_dijkstra_path_length(G, source, weight_function, paths=None, d
     return dist
 
 def single_source_target_dijkstra_path(G, source, target, weight="weight", disjunction=sum):
-    """Uses (a custom) Dijkstra's algorithm to find shortest weighted paths
+    """Uses (a custom) Dijkstra's algorithm to find shortest weighted path(s) between two nodes in a graph.
 
     Parameters
     ----------
@@ -231,5 +232,57 @@ def single_source_target_dijkstra_path(G, source, target, weight="weight", disju
                 push(fringe, (vu_dist, next(c), u))
                 if paths is not None:
                     paths[u] = paths[v] + [u]
-    #
+    
     return paths[target]
+
+
+def single_source_neighbors_dijkstra_path_length(G, source, weight="weight", paths=None, disjunction=sum):
+    if source not in G:
+        raise nx.NodeNotFound(f"Source {source} not in G")
+
+    targets = set(G.neighbors(source))
+    G_succ = G._succ if G.is_directed() else G._adj
+    weight_function = _weight_function(G, weight)
+
+    push = heappush
+    pop = heappop
+
+    dist = {}  
+    seen = {}
+    c = count()
+    fringe = []
+
+    seen[source] = 0
+    push(fringe, (0, next(c), source))
+
+    while fringe:
+        (d, _, v) = pop(fringe)
+        if v in dist:
+            continue  
+
+        dist[v] = d
+
+        targets.discard(v)
+        if not targets:
+            break
+
+        for u, e in G_succ[v].items():
+            cost = weight_function(v, u, e)
+
+            if cost is None:
+                continue
+
+            vu_dist = disjunction([dist[v], cost])
+
+            if u in dist:
+                u_dist = dist[u]
+                if vu_dist < u_dist:
+                    raise ValueError("Contradictory paths found:", "negative weights?")
+            elif u not in seen or vu_dist < seen[u]:
+                seen[u] = vu_dist
+                push(fringe, (vu_dist, next(c), u))
+
+                if paths is not None:
+                    paths[u] = paths[v] + [u]
+
+    return dist
