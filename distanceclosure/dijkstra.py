@@ -43,6 +43,10 @@ def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
     disjunction: function (default=sum)
         Whether to sum paths or use the max value.
         Use `sum` for metric and `max` for ultrametric.
+    
+    cutoff: int (default=None)
+        Maximum number of connections in the path.
+        If None, compute the entire closure as is the cutoff is the number of nodes.
 
     Returns
     -------
@@ -97,6 +101,11 @@ def single_source_dijkstra_path_length(G, source, weight="weight", paths=None, d
     disjunction: function (default=sum)
         Whether to sum paths or use the max value.
         Use `sum` for metric and `max` for ultrametric.
+    
+    cutoff: int (default=None)
+        Maximum number of connections in the path.
+        If None, compute the entire closure as is the cutoff is the number of nodes.
+        
 
     Returns
     -------
@@ -146,10 +155,13 @@ def single_source_dijkstra_path_length(G, source, weight="weight", paths=None, d
                 if vu_dist < u_dist:
                     raise ValueError("Contradictory paths found:", "negative weights?")
             elif u not in seen or vu_dist < seen[u]:
-                seen[u] = vu_dist
-                push(fringe, (vu_dist, next(c), u))
+                if paths is not None and len(paths[v]) > cutoff:
+                    continue                
                 if paths is not None:
                     paths[u] = paths[v] + [u]
+                seen[u] = vu_dist
+                push(fringe, (vu_dist, next(c), u))
+                
     #
     return dist
 

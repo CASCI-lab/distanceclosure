@@ -11,7 +11,7 @@ import numpy as np
 import networkx as nx
 from distanceclosure.dijkstra import all_pairs_dijkstra_path_length
 __name__ = 'distanceclosure'
-__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
+__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe Xavier Costa <fcosta@binghamton.edu>'])
 
 __all__ = [
     "distance_closure",
@@ -23,8 +23,7 @@ __all__ = [
 __kinds__ = ['metric', 'ultrametric']
 __algorithms__ = ['dense', 'dijkstra']
 
-
-def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', only_backbone=False, verbose=False, *args, **kwargs):
+def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', self_loops=False, only_backbone=False, cutoff=None, verbose=False, *args, **kwargs):
     """Computes the transitive closure (All-Pairs-Shortest-Paths; APSP)
     using different shortest path measures on the distance graph
     (adjacency matrix) with values in the ``[0,inf]`` interval.
@@ -47,8 +46,16 @@ def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', on
     weight : string
         Edge property containing distance values. Defaults to `weight`.
     
+    self_loops : bool
+        If the distance graph has nodes with self distance greater than zero.
+        Only implemented for complete closure (cutoff = None).
+    
     only_backbone : bool
         Only include new distance closure values for edges in the original graph.
+    
+    cutoff: int (default=None)
+        Maximum number of connections in the path.
+        If None, compute the entire closure as is the cutoff is the number of nodes.
     
     Verbose :bool
         Prints statements as it computes.
@@ -95,6 +102,40 @@ def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', on
             disjunction = sum
         elif kind == 'ultrametric':
             disjunction = max
+        
+        if self_loops:
+            G = _compute_distance_closure(D, disjunction=disjunction, weight=weight, only_backbone=False, verbose=verbose, cutoff=None, *args, **kwargs)
+            
+            for u, s in nx.selfloop_edges(G):
+                if verbose:
+                    print("Closure: Dijkstra : self loop from {u:s}".format(u=u))
+                
+                kind_distance = '{kind:s}_distance'.format(kind=kind)
+                is_kind = 'is_{kind:s}'.format(kind=kind)
+                
+                length = G[u][u][weight]
+                for v in G.neighbors(v):
+                    if v != u and G.has_edge(v, u):
+                        new_length = disjunction([G[u][v][kind_distance], G[v][u][kind_distance]])
+                        if new_length < length:
+                            length = new_length
+                
+                G[u][u][kind_distance] = length
+                G[u][u][is_kind] = True if (length == G[u][u][weight]) else False
+                
+        else:
+            G = _compute_distance_closure(D, disjunction=disjunction, weight=weight, only_backbone=False, verbose=verbose, cutoff=cutoff, *args, **kwargs)
+
+    return G
+
+def _compute_distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', only_backbone=False, cutoff=None, verbose=False, *args, **kwargs):
+    """Computes the transitive closure (All-Pairs-Shortest-Paths; APSP)
+    using different shortest path measures on the distance graph
+    (adjacency matrix) with values in the ``[0,inf]`` interval.
+
+    .. math::
+
+        c_{ij} = min_{k}( metric ( a_{ik} , b_{kj} ) )
 
         edges_seen = set()
         i = 1
@@ -109,16 +150,9 @@ def distance_closure(D, kind='metric', algorithm='dijkstra', weight='weight', on
                 if (u, v) in edges_seen or u == v:
                     continue
                 else:
-                    edges_seen.add((u, v))
-                    kind_distance = '{kind:s}_distance'.format(kind=kind)
-                    is_kind = 'is_{kind:s}'.format(kind=kind)
-                    if not G.has_edge(u, v):
-                        if not only_backbone:
-                            G.add_edge(u, v, **{weight: np.inf, kind_distance: length})
-                    else:
-                        G[u][v][kind_distance] = length
-                        G[u][v][is_kind] = True if (length == G[u][v][weight]) else False
-            i += 1
+                    G[u][v][kind_distance] = length
+                    G[u][v][is_kind] = True if (length == G[u][v][weight]) else False
+        i += 1
 
     return G
 
