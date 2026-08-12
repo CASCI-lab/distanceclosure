@@ -10,11 +10,13 @@ These algorithms work with edges weighted as distances.
 import numpy as np
 import networkx as nx
 from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path, single_source_neighbors_dijkstra_path_length
-from distanceclosure.closure import distance_closure
+from distanceclosure import distance_closure
 from itertools import product
 
 __name__ = 'distanceclosure'
-__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe Xavier Costa <fcosta@binghamton.com>'])
+__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 
+                            'Felipe Xavier Costa <fcosta@binghamton.com>', 
+                            'Robert Palermo <rpalermo@binghamton.edu>'])
 
 __all__ = [
     "metric_backbone",
@@ -82,10 +84,8 @@ def backbone_from_closure(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind
 
     if self_loops:
         raise NotImplementedError
-    if cutoff is not None:
-        raise NotImplementedError
 
-    DC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, only_backbone=True, verbose=verbose, *args, **kwargs)
+    DC = distance_closure(D, weight=weight, kind=kind, only_reweight=True, cutoff=cutoff, verbose=verbose, *args, **kwargs)
 
     is_kind = 'is_{kind:s}'.format(kind=kind)
     metric_edges = [(u, v) for u, v in DC.edges() if DC[u][v][is_kind]]
@@ -134,8 +134,6 @@ def iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: s
     
     if self_loops:
         raise NotImplementedError
-    if cutoff is not None:
-        raise NotImplementedError
     
     if kind == 'metric':
         disjunction = sum
@@ -156,7 +154,7 @@ def iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: s
             per = i/total
             print("Iterative Backbone : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, kind=kind))
         
-        metric_dist = single_source_dijkstra_path_length(G, source=u, weight=weight, disjunction=disjunction)
+        metric_dist = single_source_dijkstra_path_length(G, source=u, weight=weight, disjunction=disjunction, cutoff=cutoff)
 
         for v in list(G.neighbors(u)):
             if metric_dist[v] < G[u][v][weight]:
@@ -205,8 +203,6 @@ def iterative_backbone_ordered(D: nx.Graph | nx.DiGraph, weight: str = 'weight',
     
     if self_loops:
         raise NotImplementedError
-    if cutoff is not None:
-        raise NotImplementedError
     
     if kind == 'metric':
         disjunction = sum
@@ -227,7 +223,7 @@ def iterative_backbone_ordered(D: nx.Graph | nx.DiGraph, weight: str = 'weight',
             per = i/total
             print("Iterative Backbone : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, kind=kind))
         
-        metric_dist = single_source_dijkstra_path_length(G, source=u, weight=weight, disjunction=disjunction)
+        metric_dist = single_source_dijkstra_path_length(G, source=u, weight=weight, disjunction=disjunction, cutoff=cutoff)
 
         for v in list(G.neighbors(u)):
             if metric_dist[v] < G[u][v][weight]:
@@ -278,8 +274,6 @@ def flagged_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str
     
     if self_loops:
         raise NotImplementedError
-    if cutoff is not None:
-        raise NotImplementedError
     
     if kind == 'metric':
         disjunction = sum
@@ -301,7 +295,7 @@ def flagged_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str
             per = i/total
             print("Flagged Backbone : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, kind=kind))
 
-        metric_dist = single_source_dijkstra_path_length(G, source=u, weight=weight, disjunction=disjunction)
+        metric_dist = single_source_dijkstra_path_length(G, source=u, weight=weight, disjunction=disjunction, cutoff=cutoff)
 
         for v in list(G.neighbors(u)):
             if metric_dist[v] < G[u][v][weight]:
@@ -354,8 +348,6 @@ def heuristic_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: s
 
     if self_loops:
         raise NotImplementedError
-    if cutoff is not None:
-        raise NotImplementedError
     
     if kind == 'metric':
         disjunction = sum
@@ -382,7 +374,7 @@ def heuristic_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: s
     remaining_metric_edges = []
     for source, target in unlabeled_edges:
         
-        path = single_source_target_dijkstra_path(G, source=source, target=target, weight=weight, disjunction=disjunction)
+        path = single_source_target_dijkstra_path(G, source=source, target=target, weight=weight, disjunction=disjunction, cutoff=cutoff)
         
         path_weights = [G[path[idx-1]][path[idx]][weight] for idx in range(1, len(path))]
         shortest_path_length = disjunction(path_weights)
@@ -533,8 +525,6 @@ def flagged_backbone_optimized(D: nx.Graph | nx.DiGraph, weight: str = 'weight',
     
     if self_loops:
         raise NotImplementedError
-    if cutoff is not None:
-        raise NotImplementedError
     
     if kind == 'metric':
         disjunction = sum
@@ -551,7 +541,7 @@ def flagged_backbone_optimized(D: nx.Graph | nx.DiGraph, weight: str = 'weight',
         i = 0
 
     for node in list(G.nodes()):
-        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction)
+        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff)
 
         for neighbor in list(G.neighbors(node)):
             shortest_path = shortest_paths_to_neighbors[neighbor]
@@ -581,8 +571,6 @@ def iterative_backbone_optimized(D: nx.Graph | nx.DiGraph, weight: str = 'weight
     
     if self_loops:
         raise NotImplementedError
-    if cutoff is not None:
-        raise NotImplementedError
     
     if kind == 'metric':
         disjunction = sum
@@ -598,7 +586,7 @@ def iterative_backbone_optimized(D: nx.Graph | nx.DiGraph, weight: str = 'weight
         i = 0
     
     for node in list(G.nodes()):
-        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction)
+        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff)
 
         for neighbor in list(G.neighbors(node)):
             shortest_path = shortest_paths_to_neighbors[neighbor]
