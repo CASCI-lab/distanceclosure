@@ -233,3 +233,13 @@ def from_networkx_to_dijkstra_format(D, weight='weight'):
     neighbors = {dict_nodes_int[i]: [dict_nodes_int[j] for j in D.neighbors(i)] for i in D.nodes()}
 
     return nodes, edges, neighbors, dict_int_nodes
+
+
+__kinds__ = ['metric', 'ultrametric']
+
+def _check_for_kind(kind):
+    """
+    Check for available metric functions.
+    """
+    if kind not in __kinds__:
+        raise TypeError("Metric not found for this algorithm. Try 'metric' or 'ultrametric',")
