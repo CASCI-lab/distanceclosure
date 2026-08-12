@@ -308,6 +308,21 @@ def flagged_backbone(D: nx.Graph | nx.DiGraph, weight: str = 'weight', kind: str
     
     if distortion:
         svals = _compute_distortions(D, G, weight=weight, kind=kind)
+    if self_loops:
+        semi_trig_loops = []
+        for u in nx.nodes_with_selfloops(G):
+            spl = G[u][u][weight]
+            for k in G.neighbors(u):
+                if k != u:
+                    rpl = source_target_dijkstra_path_length(G, source=k, target=u, weight=weight, disjunction=disjunction)
+                    spl = min(spl, disjunction([G[u][k][weight], rpl]))
+            
+            if spl < G[u][u][weight]:
+                semi_trig_loops.append((u, u))        
+        G.remove_edges_from(semi_trig_loops)
+    
+    if distortion:
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)         
         return G, svals
 
     return G
@@ -506,6 +521,9 @@ def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, wei
     for u in G.nodes():
         metric_dist = single_source_dijkstra_path_length(B, source=u, weight="weight", disjunction=disjunction)
         
+    svals = dict()        
+    for u in G.nodes():
+        metric_dist = single_source_dijkstra_path_length(B, source=u, weight_function=weight_function, disjunction=disjunction)
         for v in G.neighbors(u):
             svals[(u, v)] = G[u][v][weight]/metric_dist[v]
     
