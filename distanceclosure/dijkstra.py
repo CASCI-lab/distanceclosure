@@ -153,6 +153,7 @@ def single_source_dijkstra_path_length(G, source, weight="weight", paths=None, d
     #
     return dist
 
+
 def single_source_target_dijkstra_path(G, source, target, weight="weight", disjunction=sum):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted path(s) between two nodes in a graph.
 
