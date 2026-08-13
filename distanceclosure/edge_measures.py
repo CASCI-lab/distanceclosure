@@ -1,11 +1,12 @@
-# -*- coding: utf-8 -*-
 """
-Transitive Closure
-==================
+Edge Measures from Distance Closure
+"""
 
-Computes transitive closure on a weighted graph.
-These algorithms work with undirected weighted (distance) graphs.
-"""
+from distanceclosure import distance_closure
+from distanceclosure.backbone import metric_backbone, ultrametric_backbone
+import networkx as nx
+import numpy as np
+import multiprocessing as mp
 
 import numpy as np
 import networkx as nx
@@ -13,60 +14,27 @@ from distanceclosure.dijkstra import all_pairs_dijkstra_path_length
 __name__ = 'distanceclosure'
 __author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
 
-__all__ = [
-    "s_values",
-    "b_values"
-]
+
+def edge_distortion(D, weight='weight', kind='metric', self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+    
+    if kind == 'metric':
+        G, svals = metric_backbone(D, weight=weight, distortion=True, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+    elif kind == 'ultrametric':
+        G, svals = ultrametric_backbone(D, weight=weight, distortion=True, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+    else:
+        raise ValueError("Invalid kind. Choose 'metric' or 'ultrametric'.")
+
+    for u, v in G.edges():
+        svals[(u, v)] = 1.0
+        
+    nx.set_edge_attributes(D, values=svals, name=f'{kind}_distortion')
+    
+    return D
 
 
-__kinds__ = ['metric', 'ultrametric']
-__algorithms__ = ['dense', 'dijkstra']
-
-
-def _check_for_kind(kind):
+def below_average_ratio(D, weight='weight', kind='metric', self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
     """
-    Check for available metric functions.
-    """
-    if kind not in __kinds__:
-        raise TypeError("Metric not found for this algorithm. Try 'metric' or 'ultrametric',")
-
-
-def _check_for_algorithm(algorithm):
-    """
-    Check for available algorithm.
-    """
-    if algorithm not in __algorithms__:
-        raise TypeError("Algorithm implementation not supported. Try 'dense', 'dijkstra' or leave blank.")
-
-
-def s_values(Cm, weight_distance='distance', weight_metric_distance='metric_distance'):
-    """
-    Computes s-values for each network edge.
-    The s-value is the ratio between the direct distance (from the original graph) and the indirect distance (from the metric distance closure graph).
-    The formal definition is as follow:
-
-    .. math::
-        s_{ij} = d_{ij} / d_{ij}^m.
-
-    Args:
-        Cm (networkx.Graph): The metric distance closure graph.
-        weight_distance (string): Edge attribute containing distance values. Defaults to 'distance'.
-        weight_metric_distance (string): Edge attribute containing metric distance values. Defaults to 'metric_distance'.
-    """
-    G = Cm.copy()
-    #
-    dict_s_values = {
-        (i, j): d.get(weight_distance) / d.get(weight_metric_distance)
-        for i, j, d in G.edges(data=True)
-        if ((d.get(weight_distance) < np.inf) and (d.get(weight_metric_distance) > 0))
-    }
-    nx.set_edge_attributes(G, name='s-value', values=dict_s_values)
-
-    return G
-
-
-def b_values(Cm, weight_distance='distance', weight_metric_distance='metric_distance'):
-    """Computes b-values for each edge with infinite distance, thus not existing in the original distance graph.
+    Computes below-average ratios for each edge with infinite distance, thus not existing in the original distance graph.
     The formal definition is as follow:
 
     .. math::
@@ -79,9 +47,12 @@ def b_values(Cm, weight_distance='distance', weight_metric_distance='metric_dist
 
     Parameters
     ----------
-    Cm (networkx.Graph): The metric distance closure graph.
-    weight_distance (string): Edge attribute containing distance values. Defaults to 'distance'.
-    weight_metric_distance (string): Edge attribute containing metric distance values. Defaults to 'metric_distance'.
+    D (networkx.Graph): The original distance graph.
+    weight (string): Edge attribute containing distance values. Defaults to 'weight'.
+    kind (string): The type of distance closure to use. Defaults to 'metric'.
+    self_loops (bool): Whether to include self-loops in the computation. Defaults to False.
+    cutoff (float): The maximum distance to consider. Defaults to None.
+    verbose (bool): Whether to print progress information. Defaults to False.
 
     Note
     ----
@@ -91,12 +62,25 @@ def b_values(Cm, weight_distance='distance', weight_metric_distance='metric_dist
     -------
     This computation takes a while.
     """
-    G = Cm.copy()
 
-    mean_distance = {
-        k: np.mean([d.get(weight_distance) for i, j, d in G.edges(nbunch=k, data=True) if d.get(weight_distance, None) < np.inf])
-        for k in G.nodes()
-    }
+    GC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, only_backbone=False, verbose=verbose, *args, **kwargs)
+
+    if GC.is_directed():
+        sout = GC.out_degree(weight=weight)
+        kout = GC.out_degree()
+    else:
+        sout = GC.degree(weight=weight)
+        kout = GC.degree()
+
+    mean_distance = {k: sout[k] / kout[k] if kout[k] > 0 else 0 for k in GC.nodes()}
+
+    G = nx.DiGraph()
+    G.add_nodes_from(GC.nodes(data=True))
+
+    for u, v, d in GC.edges(data=True):
+        if not D.has_edge(u, v):
+
+            G.add_edge(u, v, **d)
 
     dict_b_ij_values = {
         (i, j): mean_distance[i] / d.get(weight_metric_distance)
@@ -113,3 +97,73 @@ def b_values(Cm, weight_distance='distance', weight_metric_distance='metric_dist
     nx.set_edge_attributes(G, name='b_ji-value', values=dict_b_ji_values)
 
     return G
+
+
+def dombi_synthesis(D, prox_weight='weight', L=1e-4, R=1e3, ntrials=50, ncpu=1):
+
+    G = D.copy()
+    nx.set_edge_attributes(G, name='distance', values={(u, v): (1/w - 1) for u, v, w in G.edges(data=prox_weight)})
+    U = ultrametric_backbone(G, weight='distance', distortion=False)
+    
+    ultrametric_edges = list(U.edges())
+    non_ultrametric_edges = list(set(G.edges()) - set(U.edges()))
+
+    nr_non_ultrametric_edges = len(non_ultrametric_edges)
+
+    #Parallelized computation of the lambdas
+    inputs = zip([G for _ in range(nr_non_ultrametric_edges)],
+                 [edge for edge in non_ultrametric_edges], 
+                 [L for _ in range(nr_non_ultrametric_edges)],
+                 [R for _ in range(nr_non_ultrametric_edges)],
+                 [ntrials for _ in range(nr_non_ultrametric_edges)])
+
+    with mp.Pool(processes=ncpu) as pool:
+        non_ultrametric_edges_lambdas = pool.starmap(robust_get_largest_lambda_with_edge_in_backbone, inputs)
+        pool.close()
+
+    #Create dictionary that assigns a lambda to each edge
+    edges = non_ultrametric_edges + ultrametric_edges
+    lambdas = non_ultrametric_edges_lambdas + [np.inf for _ in range(len(ultrametric_edges))]
+    edge_to_lambda = dict(zip(edges, lambdas))
+
+    #Save the Edge:Lambda correspondence as a network with lambdas in the edge attributes
+    nx.set_edge_attributes(D, edge_to_lambda, name=f'synthesis_parameter')
+
+    return D
+
+
+def robust_get_largest_lambda_with_edge_in_backbone(net, edge, L, R, ntrial):
+
+    res='None'
+    for l in np.arange(L, R, 5):
+        r=l+5
+
+        l_val, r_val = is_edge_in_backbone(net, l, edge), is_edge_in_backbone(net, r, edge)
+        #I want to compute the largest l such that the edge is in the backbone, using a binary search with k steps
+        if l_val==True and r_val==False:
+            for _ in range(ntrial):
+                mid = (l+r)/2
+                mid_val = is_edge_in_backbone(net, mid, edge)
+                if mid_val == True:
+                    l = mid
+                else:
+                    r = mid
+            res = l
+            break
+        
+    if res=='None':
+        print('The given initial bounds do not give any information with a initial search of width 5 | L:', L, 'R:', R)
+        
+    #print(f'Edge {edge} | Lambda:', res)
+    return res
+
+
+def is_edge_in_backbone(net, l, edge):
+
+    nx.set_edge_attributes(net, name='new_distance', values={(u, v): d**l for u, v, d in net.edges(data='distance')})
+    sp = nx.shortest_path(net,  edge[0], edge[1], weight='new_distance')
+
+    if len(sp)==2: 
+        return True
+    else: 
+        return False
