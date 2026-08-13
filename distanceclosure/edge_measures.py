@@ -1,9 +1,5 @@
-# Distance Backbone Synthesis
-# Reroute Index
-
 """
 Edge Measures from Distance Closure
-==================
 """
 
 from distanceclosure import distance_closure
@@ -11,6 +7,12 @@ from distanceclosure.backbone import metric_backbone, ultrametric_backbone
 import networkx as nx
 import numpy as np
 import multiprocessing as mp
+
+import numpy as np
+import networkx as nx
+from distanceclosure.dijkstra import all_pairs_dijkstra_path_length
+__name__ = 'distanceclosure'
+__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
 
 
 def edge_distortion(D, weight='weight', kind='metric', self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
