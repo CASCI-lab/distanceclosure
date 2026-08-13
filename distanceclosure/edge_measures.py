@@ -8,11 +8,16 @@ import networkx as nx
 import numpy as np
 import multiprocessing as mp
 
-import numpy as np
-import networkx as nx
-from distanceclosure.dijkstra import all_pairs_dijkstra_path_length
+
 __name__ = 'distanceclosure'
-__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
+__author__ = """\n""".join(['Felipe Xavier Costa <fcosta@binghamton.com>',
+                            'Bernardo Pereira <mibepereira@ucp.pt>'])
+
+__all__ = [
+    "edge_distortion",
+    "dombi_synthesis",
+    "below_average_ratio"
+]
 
 
 def edge_distortion(D, weight='weight', kind='metric', self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
@@ -42,7 +47,7 @@ def below_average_ratio(D, weight='weight', kind='metric', self_loops=False, cut
 
         b_{ji} = <d_{jk}> / d_{ij}^m
 
-    which is the average distance of all edges that leaves from node `x_i`, divided by its metric distance closure.
+    which is the average distance of all edges that leaves from node `x_i`, divided by its triangular distance.
     Note that `b_{ij}` can be different from `b_{ji}`.
 
     Parameters
@@ -54,16 +59,12 @@ def below_average_ratio(D, weight='weight', kind='metric', self_loops=False, cut
     cutoff (float): The maximum distance to consider. Defaults to None.
     verbose (bool): Whether to print progress information. Defaults to False.
 
-    Note
-    ----
-    Both arguments must be numpy arrays as the Metric Closure network is a dense matrix.
-
     Warning
     -------
     This computation takes a while.
     """
 
-    GC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, only_backbone=False, verbose=verbose, *args, **kwargs)
+    GC = distance_closure(D, weight=weight, kind=kind, only_reweight=False, self_loops=False, cutoff=None, verbose=verbose, *args, **kwargs)
 
     if GC.is_directed():
         sout = GC.out_degree(weight=weight)
@@ -77,24 +78,11 @@ def below_average_ratio(D, weight='weight', kind='metric', self_loops=False, cut
     G = nx.DiGraph()
     G.add_nodes_from(GC.nodes(data=True))
 
-    for u, v, d in GC.edges(data=True):
+    for u, v, d in GC.edges(data=f'{kind:s}_distance'):
         if not D.has_edge(u, v):
-
-            G.add_edge(u, v, **d)
-
-    dict_b_ij_values = {
-        (i, j): mean_distance[i] / d.get(weight_metric_distance)
-        for i, j, d in G.edges(data=True)
-        if (d.get(weight_distance) == np.inf)
-    }
-    nx.set_edge_attributes(G, name='b_ij-value', values=dict_b_ij_values)
-
-    dict_b_ji_values = {
-        (i, j): mean_distance[j] / d.get(weight_metric_distance)
-        for i, j, d in G.edges(data=True)
-        if (d.get(weight_distance) == np.inf)
-    }
-    nx.set_edge_attributes(G, name='b_ji-value', values=dict_b_ji_values)
+            G.add_weighted_edge(u, v, ratio=mean_distance[u]/d)
+            if not GC.is_directed():
+                G.add_weighted_edge(v, u, ratio=mean_distance[v]/d)
 
     return G
 
@@ -118,7 +106,7 @@ def dombi_synthesis(D, prox_weight='weight', L=1e-4, R=1e3, ntrials=50, ncpu=1):
                  [ntrials for _ in range(nr_non_ultrametric_edges)])
 
     with mp.Pool(processes=ncpu) as pool:
-        non_ultrametric_edges_lambdas = pool.starmap(robust_get_largest_lambda_with_edge_in_backbone, inputs)
+        non_ultrametric_edges_lambdas = pool.starmap(_get_largest_lambda_with_edge_in_backbone, inputs)
         pool.close()
 
     #Create dictionary that assigns a lambda to each edge
@@ -132,18 +120,18 @@ def dombi_synthesis(D, prox_weight='weight', L=1e-4, R=1e3, ntrials=50, ncpu=1):
     return D
 
 
-def robust_get_largest_lambda_with_edge_in_backbone(net, edge, L, R, ntrial):
+def _get_largest_lambda_with_edge_in_backbone(net, edge, L, R, ntrial):
 
     res='None'
     for l in np.arange(L, R, 5):
         r=l+5
 
-        l_val, r_val = is_edge_in_backbone(net, l, edge), is_edge_in_backbone(net, r, edge)
+        l_val, r_val = _is_edge_in_backbone(net, l, edge), _is_edge_in_backbone(net, r, edge)
         #I want to compute the largest l such that the edge is in the backbone, using a binary search with k steps
         if l_val==True and r_val==False:
             for _ in range(ntrial):
                 mid = (l+r)/2
-                mid_val = is_edge_in_backbone(net, mid, edge)
+                mid_val = _is_edge_in_backbone(net, mid, edge)
                 if mid_val == True:
                     l = mid
                 else:
@@ -158,7 +146,7 @@ def robust_get_largest_lambda_with_edge_in_backbone(net, edge, L, R, ntrial):
     return res
 
 
-def is_edge_in_backbone(net, l, edge):
+def _is_edge_in_backbone(net, l, edge):
 
     nx.set_edge_attributes(net, name='new_distance', values={(u, v): d**l for u, v, d in net.edges(data='distance')})
     sp = nx.shortest_path(net,  edge[0], edge[1], weight='new_distance')

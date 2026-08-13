@@ -78,15 +78,15 @@ def distance_closure(D, weight='weight', kind='metric', only_reweight=False, cut
     for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, disjunction=disjunction, cutoff=cutoff):
         if verbose:
             per = i / total
-            print("Distance Closure : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(kind=kind, i=i, total=total, per=per))
+            print(f"Distance Closure : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})")
         for v, length in lengths.items():
 
             if (u, v) in edges_seen or u == v:
                 continue
             else:
                 edges_seen.add((u, v))
-                kind_distance = '{kind:s}_distance'.format(kind=kind)
-                is_kind = 'is_{kind:s}'.format(kind=kind)
+                kind_distance = f'{kind:s}_distance'
+                is_kind = f'is_{kind:s}'
                 if not G.has_edge(u, v):
                     if not only_reweight:
                         G.add_edge(u, v, **{weight: float('inf'), kind_distance: length})
