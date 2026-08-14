@@ -6,10 +6,7 @@ Distance Backbones
 Compute the distance backbones of weighted graphs.
 """
 import networkx as nx
-from ._registries import _ALGORITHMS, _KINDS
-
-__name__ = "distanceclosure"
-__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 'Felipe Xavier Costa <fcosta@binghamton.com>'])
+from ._registries import _BACKBONE_ALGORITHMS, _KINDS
 
 __all__ = [
     "distance_backbone",
@@ -57,15 +54,27 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", kind: st
         If ``kind`` or ``algorithm`` is invalid.
     """
 
+    if self_loops:
+        raise NotImplementedError
+    if cutoff is not None:
+        raise NotImplementedError
+    
+    if kind == 'metric':
+        disjunction = sum
+    elif kind == 'ultrametric':
+        disjunction = max
+    elif kind == 'drastic':
+        disjunction = _drastic_disjunction
+
     if kind not in _KINDS:
         raise ValueError("Invalid input. Valid arguments are 'metric' and 'ultrametric'.")
 
     try:
-        chosen_algorithm = _ALGORITHMS[algorithm]
+        chosen_algorithm = _BACKBONE_ALGORITHMS[algorithm]
     except KeyError:
         raise ValueError("Invalid input. Valid arguments are 'iterative', 'flagged', 'closure', 'heuristic', or 'approximate'")
     
-    return chosen_algorithm(D, weight=weight, kind=kind, distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+    return chosen_algorithm(D, weight=weight, disjunction=disjunction, distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
 
 
 def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:

@@ -1,4 +1,4 @@
-from distanceclosure.dijkstra import single_source_dijkstra_path_length
+from distanceclosure._dijkstra import _single_source_dijkstra_path_length
 from distanceclosure.cython.dijkstra import cy_single_source_dijkstra_path_length
 #
 from distanceclosure.utils import prox2dist, from_networkx_to_dijkstra_format
@@ -50,7 +50,7 @@ def test_dc_single_source_vs_nx_single_source():
 
     # dc
     weight_function = _weight_function(G, 'weight')
-    dc_lengths = single_source_dijkstra_path_length(G, source='s', weight_function=weight_function, disjunction=sum)
+    dc_lengths = _single_source_dijkstra_path_length(G, source='s', weight_function=weight_function, disjunction=sum)
 
     assert (nx_lengths == dc_lengths)
 
