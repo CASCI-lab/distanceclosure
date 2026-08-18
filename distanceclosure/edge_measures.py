@@ -2,7 +2,6 @@
 Edge Measures from Distance Closure
 """
 
-from distanceclosure import distance_closure
 from distanceclosure.backbone import metric_backbone, ultrametric_backbone
 import networkx as nx
 import numpy as np
@@ -11,7 +10,7 @@ import multiprocessing as mp
 
 __name__ = 'distanceclosure'
 __author__ = """\n""".join(['Felipe Xavier Costa <fcosta@binghamton.com>',
-                            'Bernardo Pereira <mibepereira@ucp.pt>'])
+                            'Bernardo Pereira <mbernardogp@gmail.com>'])
 
 __all__ = [
     "edge_distortion",

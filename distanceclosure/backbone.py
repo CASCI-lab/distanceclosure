@@ -10,10 +10,8 @@ These algorithms work with edges weighted as distances.
 import numpy as np
 import networkx as nx
 from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path, single_source_neighbors_dijkstra_path_length
-from distanceclosure import distance_closure
 from itertools import product
 
-__name__ = 'distanceclosure'
 __author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 
                             'Felipe Xavier Costa <fcosta@binghamton.com>', 
                             'Robert Palermo <rpalermo@binghamton.edu>'])
