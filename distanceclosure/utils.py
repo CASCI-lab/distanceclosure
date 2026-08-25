@@ -11,15 +11,15 @@ import pandas as pd
 from scipy.sparse import csr_matrix
 import networkx as nx
 
-__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
-
 __all__ = [
     'prox2dist',
     'dist2prox',
     'dict2matrix',
     'matrix2dict',
     'dict2sparse',
-    'from_networkx_to_dijkstra_format'
+    'from_networkx_to_dijkstra_format',
+    's_values',
+    'b_values'
 ]
 
 
@@ -234,12 +234,3 @@ def from_networkx_to_dijkstra_format(D, weight='weight'):
 
     return nodes, edges, neighbors, dict_int_nodes
 
-
-__kinds__ = ['metric', 'ultrametric']
-
-def _check_for_kind(kind):
-    """
-    Check for available metric functions.
-    """
-    if kind not in __kinds__:
-        raise TypeError("Metric not found for this algorithm. Try 'metric' or 'ultrametric',")

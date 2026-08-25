@@ -140,9 +140,9 @@ def single_source_dijkstra_path_length(G, source, weight="weight", disjunction=s
 
     push = heappush
     pop = heappop
-
     dist = {}  
     seen = {}
+
     c = count()
     fringe = []
 
@@ -152,7 +152,7 @@ def single_source_dijkstra_path_length(G, source, weight="weight", disjunction=s
     while fringe:
         (d, _, v) = pop(fringe)
         if v in dist:
-            continue  # already searched this node.
+            continue  
         dist[v] = d
         for u, e in G_succ[v].items():
             cost = weight_function(v, u, e)
@@ -171,7 +171,6 @@ def single_source_dijkstra_path_length(G, source, weight="weight", disjunction=s
                 seen[u] = vu_dist
                 push(fringe, (vu_dist, next(c), u))
                 
-    #
     return dist
 
 def single_source_target_dijkstra_path(G, source, target, weight="weight", disjunction=sum, cutoff=None):
@@ -231,7 +230,7 @@ def single_source_target_dijkstra_path(G, source, target, weight="weight", disju
 
     push = heappush
     pop = heappop
-    dist = {}  # dictionary of final distances
+    dist = {} 
     seen = {}
 
     c = count()
@@ -290,26 +289,19 @@ def single_source_neighbors_dijkstra_path_length(G, source, weight="weight", dis
 
     seen[source] = 0
     push(fringe, (0, next(c), source))
-
     while fringe:
         (d, _, v) = pop(fringe)
         if v in dist:
             continue  
-
         dist[v] = d
-
         targets.discard(v)
         if not targets:
             break
-
         for u, e in G_succ[v].items():
             cost = weight_function(v, u, e)
-
             if cost is None:
                 continue
-
             vu_dist = disjunction([dist[v], cost])
-
             if u in dist:
                 u_dist = dist[u]
                 if vu_dist < u_dist:
