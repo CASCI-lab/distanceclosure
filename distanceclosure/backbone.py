@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Distance Backbones
-==================
+Distance Backbone
+=================
 
-Compute the distance backbones of weighted graphs.
+Compute the distance backbones of both directed and undirected weighted graphs.
 """
-import networkx as nx
 import numpy as np
 import networkx as nx
-from distanceclosure._dijkstra import _single_source_dijkstra_path_length, _single_source_target_dijkstra_path, _single_source_neighbors_dijkstra_path_length, _all_pairs_dijkstra_path_length
+
+from distanceclosure._dijkstra import _single_source_dijkstra_path_length, _single_source_target_dijkstra_path, _single_source_neighbors_dijkstra_path_length
 from distanceclosure.closure import distance_closure
 from distanceclosure._constants import _KINDS
+
 from itertools import product
 from typing import Callable
 
@@ -22,7 +23,7 @@ __all__ = [
 
 
 # Public
-def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", kind: str = "metric", algorithm: str = "iterative", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", kind: str = "metric", algorithm: str = "iterative", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Compute the distance backbone of a weighted graph.
 
@@ -44,10 +45,6 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", kind: st
         Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
     verbose : bool, optional
         Whether to display progress information, by default False.
-    *args
-        Additional positional arguments passed to the selected algorithm.
-    **kwargs
-        Additional keyword arguments passed to the selected algorithm.
 
     Returns
     -------
@@ -64,7 +61,7 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", kind: st
 
     if self_loops:
         raise NotImplementedError
-    if cutoff is not None:
+    elif cutoff is not None:
         raise NotImplementedError
     
     if kind == 'metric':
@@ -82,10 +79,10 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", kind: st
     except KeyError:
         raise ValueError("Invalid input. Valid arguments are 'iterative', 'flagged', 'closure', 'heuristic', or 'approximate'")
     
-    return chosen_algorithm(D, weight=weight, disjunction=disjunction, distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+    return chosen_algorithm(D, weight=weight, disjunction=disjunction, distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
 
-def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Compute the metric backbone of a weighted graph.
 
@@ -93,10 +90,10 @@ def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion
     where ``kind="metric"`` and ``algorithm="iterative"``.
     """
 
-    return distance_backbone(D, weight=weight, algorithm="iterative", kind="metric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+    return distance_backbone(D, weight=weight, algorithm="iterative", kind="metric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
 
-def ultrametric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def ultrametric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Compute the metric backbone of a weighted graph.
 
@@ -104,11 +101,11 @@ def ultrametric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", disto
     where ``kind="ultrametric"`` and ``algorithm="iterative"``.
     """
 
-    return distance_backbone(D, weight=weight, algorithm="iterative", kind="ultrametric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+    return distance_backbone(D, weight=weight, algorithm="iterative", kind="ultrametric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
 
 # Private 
-def _flagged_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _flagged_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     G = D.copy()
     B = nx.DiGraph() if nx.is_directed(G) else nx.Graph()
 
@@ -143,7 +140,7 @@ def _flagged_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callab
     return G
 
     
-def _iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool , cutoff: int, verbose: bool, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool , cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     G = D.copy()
     
     if verbose:
@@ -172,7 +169,7 @@ def _iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Call
     return G
 
 
-def _closure_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _closure_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     # Come back and fix this once I am done with the closure
     """
     Backbone computation considering the closure.
@@ -212,7 +209,7 @@ def _closure_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callab
     elif disjunction == _drastic_disjunction:
         kind = "drastic"
 
-    DC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, only_backbone=True, verbose=verbose, *args, **kwargs)
+    DC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, existing_edges_only=True, verbose=verbose)
 
     is_kind = 'is_{kind:s}'.format(kind=kind)
     metric_edges = [(u, v) for u, v in DC.edges() if DC[u][v][is_kind]]
@@ -225,7 +222,7 @@ def _closure_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callab
     return G
 
 
-def _heuristic_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _heuristic_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Heuristic backbone computation combining triangle search (based on "V. Kalavri et al (2016) Proceedings of the VLDB Endowment, Volume 9, Issue 9")
 
@@ -293,7 +290,7 @@ def _heuristic_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Call
     return G
 
 
-def _approximate_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, *args, **kwargs) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _approximate_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     G = D.copy()
 
     # Algorithm 1, page 676
@@ -406,4 +403,3 @@ _BACKBONE_ALGORITHMS = {
     "heuristic": _heuristic_backbone,
     "approximate": _approximate_backbone
 }
-
