@@ -10,6 +10,7 @@ setup.py
 # Test files
 sample_net.gpickle
 test_speed.py
+dbs_test/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

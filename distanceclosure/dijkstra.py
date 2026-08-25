@@ -10,8 +10,19 @@ from heapq import heappush, heappop
 from itertools import count
 import networkx as nx
 from networkx.algorithms.shortest_paths.weighted import _weight_function
+__name__ = 'distanceclosure'
+__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 
+                            'Felipe Xavier Costa <fcosta@binghamton.com>', 
+                            'Robert Palermo <rpalermo@binghamton.edu>'])
 
-def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
+__all__ = [
+    "all_pairs_dijkstra_path_length",
+    "single_source_dijkstra_path_length",
+    "single_source_target_dijkstra_path",
+    "single_source_neighbors_dijkstra_path_length"
+]
+
+def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum, cutoff=None):
     """Computes shortest path lengths between all nodes in a weighted graph.
 
     Parameters
@@ -34,6 +45,10 @@ def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
     disjunction: function (default=sum)
         Whether to sum paths or use the max value.
         Use `sum` for metric and `max` for ultrametric.
+    
+    cutoff: int (default=None)
+        Maximum number of connections in the path.
+        If None, compute the entire closure as is the cutoff is the number of nodes.
 
     Returns
     -------
@@ -65,10 +80,10 @@ def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
     The dictionary returned only has keys for reachable node pairs.
     """
     for n in G:
-        yield (n, single_source_dijkstra_path_length(G, source=n, weight=weight, disjunction=disjunction))
+        yield (n, single_source_dijkstra_path_length(G, source=n, weight=weight, disjunction=disjunction, cutoff=cutoff))
 
 
-def single_source_dijkstra_path_length(G, source, weight="weight", paths=None, disjunction=sum):
+def single_source_dijkstra_path_length(G, source, weight="weight", disjunction=sum, cutoff=None):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted paths
 
     Parameters
@@ -88,6 +103,11 @@ def single_source_dijkstra_path_length(G, source, weight="weight", paths=None, d
     disjunction: function (default=sum)
         Whether to sum paths or use the max value.
         Use `sum` for metric and `max` for ultrametric.
+    
+    cutoff: int (default=None)
+        Maximum number of nodes in the path.
+        If None, compute the entire closure as is the cutoff is the number of nodes.
+        
 
     Returns
     -------
@@ -107,8 +127,16 @@ def single_source_dijkstra_path_length(G, source, weight="weight", paths=None, d
     as arguments. No need to explicitly return paths.
 
     """
-    G_succ = G._succ if G.is_directed() else G._adj
+    if source not in G:
+        raise nx.NodeNotFound(f"Source {source} not in G")
+
+    G_succ = G._adj #G._succ if G.is_directed() else G._adj
     weight_function = _weight_function(G, weight)
+
+    if cutoff is not None:
+        paths = {source: [source]}
+    else:
+        paths = None
 
     push = heappush
     pop = heappop
@@ -117,10 +145,10 @@ def single_source_dijkstra_path_length(G, source, weight="weight", paths=None, d
 
     c = count()
     fringe = []
-    if source not in G:
-        raise nx.NodeNotFound(f"Source {source} not in G")
+
     seen[source] = 0
     push(fringe, (0, next(c), source))
+
     while fringe:
         (d, _, v) = pop(fringe)
         if v in dist:
@@ -136,15 +164,16 @@ def single_source_dijkstra_path_length(G, source, weight="weight", paths=None, d
                 if vu_dist < u_dist:
                     raise ValueError("Contradictory paths found:", "negative weights?")
             elif u not in seen or vu_dist < seen[u]:
-                seen[u] = vu_dist
-                push(fringe, (vu_dist, next(c), u))
+                if paths is not None and len(paths[v]) > cutoff:
+                    continue                
                 if paths is not None:
                     paths[u] = paths[v] + [u]
-
+                seen[u] = vu_dist
+                push(fringe, (vu_dist, next(c), u))
+                
     return dist
 
-
-def single_source_target_dijkstra_path(G, source, target, weight="weight", disjunction=sum):
+def single_source_target_dijkstra_path(G, source, target, weight="weight", disjunction=sum, cutoff=None):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted path(s) between two nodes in a graph.
 
     Parameters
@@ -168,6 +197,9 @@ def single_source_target_dijkstra_path(G, source, target, weight="weight", disju
         Whether to sum paths or use the max value.
         Use `sum` for metric and `max` for ultrametric.
 
+    cutoff : int, optional (default=None)
+        Maximum number of nodes in the path. If None, compute the entire closure as if the cutoff is the number of nodes.
+
     Returns
     -------
     distance : dictionary
@@ -186,8 +218,15 @@ def single_source_target_dijkstra_path(G, source, target, weight="weight", disju
     as arguments. No need to explicitly return paths.
 
     """
-    G_succ = G._adj 
+    if source not in G:
+        raise nx.NodeNotFound(f"Source {source} not in G")
+    
+    G_succ = G._adj #G._succ if G.is_directed() else G._adj
     weight_function = _weight_function(G, weight)
+
+    if cutoff is None:
+        cutoff = len(G.nodes)+1
+    paths = {source: [source]}
 
     push = heappush
     pop = heappop
@@ -196,9 +235,7 @@ def single_source_target_dijkstra_path(G, source, target, weight="weight", disju
 
     c = count()
     fringe = []
-    if source not in G:
-        raise nx.NodeNotFound(f"Source {source} not in G")
-    paths = {source: [source]} 
+     
     seen[source] = 0
     push(fringe, (0, next(c), source))
     while fringe:
@@ -217,22 +254,30 @@ def single_source_target_dijkstra_path(G, source, target, weight="weight", disju
                 u_dist = dist[u]
                 if vu_dist < u_dist:
                     raise ValueError("Contradictory paths found:", "negative weights?")
-            elif u not in seen or vu_dist < seen[u]:
-                seen[u] = vu_dist
-                push(fringe, (vu_dist, next(c), u))
+            elif u not in seen or vu_dist < seen[u]:                
+                if paths is not None and len(paths[v]) > cutoff:
+                    continue                
                 if paths is not None:
                     paths[u] = paths[v] + [u]
+
+                seen[u] = vu_dist
+                push(fringe, (vu_dist, next(c), u))
     
     return paths[target]
 
 
-def single_source_neighbors_dijkstra_path_length(G, source, weight="weight", paths=None, disjunction=sum):
+def single_source_neighbors_dijkstra_path_length(G, source, weight="weight", disjunction=sum, cutoff=None):
     if source not in G:
         raise nx.NodeNotFound(f"Source {source} not in G")
 
     targets = set(G.neighbors(source))
-    G_succ = G._succ if G.is_directed() else G._adj
+    G_succ = G._adj #G._succ if G.is_directed() else G._adj
     weight_function = _weight_function(G, weight)
+
+    if cutoff is not None:
+        paths = {source: [source]}
+    else:
+        paths = None
 
     push = heappush
     pop = heappop
@@ -262,9 +307,12 @@ def single_source_neighbors_dijkstra_path_length(G, source, weight="weight", pat
                 if vu_dist < u_dist:
                     raise ValueError("Contradictory paths found:", "negative weights?")
             elif u not in seen or vu_dist < seen[u]:
-                seen[u] = vu_dist
-                push(fringe, (vu_dist, next(c), u))
+                if paths is not None and len(paths[v]) > cutoff:
+                    continue                
                 if paths is not None:
                     paths[u] = paths[v] + [u]
+
+                seen[u] = vu_dist
+                push(fringe, (vu_dist, next(c), u))
 
     return dist

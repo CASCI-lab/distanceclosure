@@ -215,6 +215,21 @@ def _closure_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callab
     is_kind = 'is_{kind:s}'.format(kind=kind)
     metric_edges = [(u, v) for u, v in DC.edges() if DC[u][v][is_kind]]
     G = DC.edge_subgraph(metric_edges).copy()
+
+    if self_loops:
+        if kind == 'metric':
+            disjunction = sum
+        elif kind == 'ultrametric':
+            disjunction = max
+        elif kind == 'drastic':
+            disjunction = _drastic_disjunction
+            
+        for _, u in sloops:
+            for k in G.neighbors(u):
+                return_path = single_source_target_dijkstra_path(G, source=k, target=u, weight=weight, disjunction=disjunction, cutoff=cutoff-1)
+                spl = disjunction([G[u][k][weight], disjunction(G[return_path[idx-1]][return_path[idx]][weight] for idx in range(1, len(return_path)))])
+                if spl > D[u][u][weight]:
+                    G.add_edge(u, u, **D[u][u])
     
     if distortion:
         svals = _compute_distortions(D, G, weight=weight, kind=kind)         
@@ -272,7 +287,7 @@ def _heuristic_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Call
     remaining_metric_edges = []
     for source, target in unlabeled_edges:
         
-        path = single_source_target_dijkstra_path(G, source=source, target=target, weight=weight, disjunction=disjunction)
+        path = single_source_target_dijkstra_path(G, source=source, target=target, weight=weight, disjunction=disjunction, cutoff=cutoff)
         
         path_weights = [G[path[idx-1]][path[idx]][weight] for idx in range(1, len(path))]
         shortest_path_length = disjunction(path_weights)
@@ -391,7 +406,6 @@ def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, dis
     svals = dict()        
     for u in G.nodes():
         metric_dist = single_source_dijkstra_path_length(B, source=u, weight="weight", disjunction=disjunction)
-        
         for v in G.neighbors(u):
             svals[(u, v)] = G[u][v][weight]/metric_dist[v]
     
