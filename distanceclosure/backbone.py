@@ -8,12 +8,13 @@ Compute the distance backbones of both directed and undirected weighted graphs.
 import numpy as np
 import networkx as nx
 
-from distanceclosure._dijkstra import _single_source_dijkstra_path_length, _single_source_target_dijkstra_path, _single_source_neighbors_dijkstra_path_length
+from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path, single_source_neighbors_dijkstra_path_length
 from distanceclosure.closure import distance_closure
-from distanceclosure._constants import _KINDS
 
 from itertools import product
 from typing import Callable
+
+
 
 __all__ = [
     "distance_backbone",
@@ -114,7 +115,7 @@ def _flagged_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callab
         i = 0
 
     for node in list(G.nodes()):
-        shortest_paths_to_neighbors = _single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction)
+        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction)
 
         for neighbor in list(G.neighbors(node)):
             shortest_path = shortest_paths_to_neighbors[neighbor]
@@ -148,7 +149,7 @@ def _iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Call
         i = 0
     
     for node in list(G.nodes()):
-        shortest_paths_to_neighbors = _single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction)
+        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction)
 
         for neighbor in list(G.neighbors(node)):
             shortest_path = shortest_paths_to_neighbors[neighbor]
@@ -271,7 +272,7 @@ def _heuristic_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Call
     remaining_metric_edges = []
     for source, target in unlabeled_edges:
         
-        path = _single_source_target_dijkstra_path(G, source=source, target=target, weight=weight, disjunction=disjunction)
+        path = single_source_target_dijkstra_path(G, source=source, target=target, weight=weight, disjunction=disjunction)
         
         path_weights = [G[path[idx-1]][path[idx]][weight] for idx in range(1, len(path))]
         shortest_path_length = disjunction(path_weights)
@@ -389,7 +390,7 @@ def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, dis
 
     svals = dict()        
     for u in G.nodes():
-        metric_dist = _single_source_dijkstra_path_length(B, source=u, weight="weight", disjunction=disjunction)
+        metric_dist = single_source_dijkstra_path_length(B, source=u, weight="weight", disjunction=disjunction)
         
         for v in G.neighbors(u):
             svals[(u, v)] = G[u][v][weight]/metric_dist[v]
@@ -402,4 +403,10 @@ _BACKBONE_ALGORITHMS = {
     "closure": _closure_backbone,
     "heuristic": _heuristic_backbone,
     "approximate": _approximate_backbone
+}
+
+_KINDS = {
+    "metric": sum,
+    "ultrametric": max,
+    "drastic": _drastic_disjunction
 }

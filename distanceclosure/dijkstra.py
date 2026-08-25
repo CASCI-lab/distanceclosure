@@ -11,7 +11,7 @@ from itertools import count
 import networkx as nx
 from networkx.algorithms.shortest_paths.weighted import _weight_function
 
-def _all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
+def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
     """Computes shortest path lengths between all nodes in a weighted graph.
 
     Parameters
@@ -65,10 +65,10 @@ def _all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum):
     The dictionary returned only has keys for reachable node pairs.
     """
     for n in G:
-        yield (n, _single_source_dijkstra_path_length(G, source=n, weight=weight, disjunction=disjunction))
+        yield (n, single_source_dijkstra_path_length(G, source=n, weight=weight, disjunction=disjunction))
 
 
-def _single_source_dijkstra_path_length(G, source, weight="weight", paths=None, disjunction=sum):
+def single_source_dijkstra_path_length(G, source, weight="weight", paths=None, disjunction=sum):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted paths
 
     Parameters
@@ -144,7 +144,7 @@ def _single_source_dijkstra_path_length(G, source, weight="weight", paths=None, 
     return dist
 
 
-def _single_source_target_dijkstra_path(G, source, target, weight="weight", disjunction=sum):
+def single_source_target_dijkstra_path(G, source, target, weight="weight", disjunction=sum):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted path(s) between two nodes in a graph.
 
     Parameters
@@ -226,7 +226,7 @@ def _single_source_target_dijkstra_path(G, source, target, weight="weight", disj
     return paths[target]
 
 
-def _single_source_neighbors_dijkstra_path_length(G, source, weight="weight", paths=None, disjunction=sum):
+def single_source_neighbors_dijkstra_path_length(G, source, weight="weight", paths=None, disjunction=sum):
     if source not in G:
         raise nx.NodeNotFound(f"Source {source} not in G")
 

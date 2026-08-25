@@ -9,9 +9,12 @@ Compute the distance closure of a weighted graph.
 import numpy as np
 import networkx as nx
 from typing import Callable
-from ._constants import _KINDS
-from distanceclosure._dijkstra import _all_pairs_dijkstra_path_length
+from distanceclosure.dijkstra import all_pairs_dijkstra_path_length
 
+_KINDS = {
+    "metric": sum,
+    "ultrametric": max,
+}
 
 __all__ = [
     "distance_closure"
@@ -96,7 +99,7 @@ def _closure(D: nx.Graph | nx.DiGraph, kind: str, disjunction: Callable, weight:
     total = G.number_of_nodes()
 
     i = 1
-    for u, lengths in _all_pairs_dijkstra_path_length(G, weight=weight, disjunction=disjunction):
+    for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, disjunction=disjunction):
         if verbose:
             per = i / total
             print("Distance Closure : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(kind=kind, i=i, total=total, per=per))
