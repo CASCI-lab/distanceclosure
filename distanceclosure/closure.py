@@ -9,14 +9,14 @@ Compute the distance closure of a weighted graph.
 import numpy as np
 import networkx as nx
 from typing import Callable
-from distanceclosure.dijkstra import all_pairs_dijkstra_path_length
+from distanceclosure.dijkstra import all_pairs_dijkstra_path_length, single_source_target_dijkstra_path
 
 
 __all__ = [
     "distance_closure"
 ]
 
-def distance_closure(D: nx.Graph | nx.DiGraph, kind='metric', weight='weight', existing_edges_only=False, verbose=False) -> nx.Graph | nx.DiGraph: 
+def distance_closure(D: nx.Graph | nx.DiGraph, kind='metric', weight='weight', existing_edges_only=False, self_loops=False, verbose=False) -> nx.Graph | nx.DiGraph: 
     """
     Compute the distance closure of a weighted graph.
 
@@ -30,6 +30,8 @@ def distance_closure(D: nx.Graph | nx.DiGraph, kind='metric', weight='weight', e
         Edge attribute containing distance values. Default is ``"weight"``.
     existing_edges_only : bool, optional
         If False, add closure edges between reachable non-adjacent nodes.
+    self_loops : bool, optional
+        If True, compute the distance closure considering self-loops.
     verbose : bool, optional
         If True, print progress information during computation.
         Default is ``False``.
@@ -50,11 +52,11 @@ def distance_closure(D: nx.Graph | nx.DiGraph, kind='metric', weight='weight', e
     except KeyError:
         raise ValueError("Invalid input. Valid arguments are: {_KINDS:s}".format(_KINDS=_KINDS.keys()))
 
-    return _closure(D, kind=kind, disjunction=disjunction, weight=weight, existing_edges_only=existing_edges_only, verbose=verbose)
+    return _closure(D, kind=kind, disjunction=disjunction, weight=weight, existing_edges_only=existing_edges_only, self_loops=self_loops, verbose=verbose)
 
 
 # Private
-def _closure(D: nx.Graph | nx.DiGraph, kind: str, disjunction: Callable, weight: str, existing_edges_only: bool, verbose: bool) -> nx.Graph | nx.DiGraph:
+def _closure(D: nx.Graph | nx.DiGraph, kind: str, disjunction: Callable, weight: str, existing_edges_only: bool, self_loops: bool, verbose: bool) -> nx.Graph | nx.DiGraph:
     """
     Compute the distance closure using all-pairs shortest paths (APSP)
     with two different shortest path measures on a weighted distance graph.
@@ -70,9 +72,11 @@ def _closure(D: nx.Graph | nx.DiGraph, kind: str, disjunction: Callable, weight:
         for metric and ``max`` for ultrametric.
     weight : str
         Edge attribute containing distance values.
-    existing_edges_only : bool
+    existing_edges_only : bool, optional
         If False, add closure edges between reachable non-adjacent nodes.
-    verbose : bool
+    self_loops : bool, optional
+        If True, compute the distance closure considering self-loops.
+    verbose : bool, optional
         If True, print progress information during computation.
 
     Returns
@@ -111,6 +115,26 @@ def _closure(D: nx.Graph | nx.DiGraph, kind: str, disjunction: Callable, weight:
                     G[u][v][kind_distance] = length
                     G[u][v][is_kind] = True if (length == G[u][v][weight]) else False
         i += 1
+
+    if self_loops:
+        for u in G.nodes():
+            if not G.has_edge(u, u):
+                length = np.inf
+            else:
+                length = G[u][u][weight]
+
+            for k in G.neighbors(u):
+                return_path = single_source_target_dijkstra_path(G, source=k, target=u, weight=weight, disjunction=disjunction)
+                spl = disjunction([G[u][k][weight], disjunction(G[return_path[idx-1]][return_path[idx]][weight] for idx in range(1, len(return_path)))])
+                if spl < length:
+                    length = spl
+
+            if not G.has_edge(u, u):
+                if not existing_edges_only:
+                    G.add_edge(u, u, **{weight: np.inf, kind_distance: length})
+            else:
+                G[u][u][kind_distance] = length
+                G[u][u][is_kind] = True if (length == G[u][u][weight]) else False
 
     return G
 
