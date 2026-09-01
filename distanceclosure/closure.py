@@ -11,10 +11,6 @@ import networkx as nx
 from typing import Callable
 from distanceclosure.dijkstra import all_pairs_dijkstra_path_length
 
-_KINDS = {
-    "metric": sum,
-    "ultrametric": max,
-}
 
 __all__ = [
     "distance_closure"
@@ -49,13 +45,10 @@ def distance_closure(D: nx.Graph | nx.DiGraph, kind='metric', weight='weight', e
         If ``kind`` is invalid.
     """
 
-    if kind == 'metric':
-        disjunction = sum
-    elif kind == 'ultrametric':
-        disjunction = max
-
-    if kind not in _KINDS:
-        raise ValueError("Invalid input. Valid arguments are 'metric' and 'ultrametric'.")
+    try:
+        disjunction = _KINDS[kind]
+    except KeyError:
+        raise ValueError("Invalid input. Valid arguments are: {_KINDS:s}".format(_KINDS=_KINDS.keys()))
 
     return _closure(D, kind=kind, disjunction=disjunction, weight=weight, existing_edges_only=existing_edges_only, verbose=verbose)
 
@@ -120,3 +113,9 @@ def _closure(D: nx.Graph | nx.DiGraph, kind: str, disjunction: Callable, weight:
         i += 1
 
     return G
+
+
+_KINDS = {
+    "metric": sum,
+    "ultrametric": max,
+}

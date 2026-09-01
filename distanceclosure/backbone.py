@@ -15,7 +15,6 @@ from itertools import product
 from typing import Callable
 
 
-
 __all__ = [
     "distance_backbone",
     "metric_backbone",
@@ -62,23 +61,16 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", kind: st
 
     if self_loops:
         raise NotImplementedError
-    elif cutoff is not None:
-        raise NotImplementedError
-    
-    if kind == 'metric':
-        disjunction = sum
-    elif kind == 'ultrametric':
-        disjunction = max
-    elif kind == 'drastic':
-        disjunction = _drastic_disjunction
 
-    if kind not in _KINDS:
-        raise ValueError("Invalid input. Valid arguments are 'metric' and 'ultrametric'.")
+    try:
+        disjunction = _KINDS[kind]
+    except KeyError:
+        raise ValueError("Invalid input. Valid arguments are: {_KINDS:s}".format(_KINDS=_KINDS.keys()))
 
     try:
         chosen_algorithm = _BACKBONE_ALGORITHMS[algorithm]
     except KeyError:
-        raise ValueError("Invalid input. Valid arguments are 'iterative', 'flagged', 'closure', 'heuristic', or 'approximate'")
+        raise ValueError("Invalid input. Valid arguments are: {_BACKBONE_ALGORITHMS:s}".format(_BACKBONE_ALGORITHMS=_BACKBONE_ALGORITHMS.keys()))
     
     return chosen_algorithm(D, weight=weight, disjunction=disjunction, distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
@@ -96,7 +88,7 @@ def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion
 
 def ultrametric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
-    Compute the metric backbone of a weighted graph.
+    Compute the ultrametric backbone of a weighted graph.
 
     This is a wrapper for :func:`distance_backbone`
     where ``kind="ultrametric"`` and ``algorithm="iterative"``.
@@ -115,7 +107,7 @@ def _flagged_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callab
         i = 0
 
     for node in list(G.nodes()):
-        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction)
+        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff)
 
         for neighbor in list(G.neighbors(node)):
             shortest_path = shortest_paths_to_neighbors[neighbor]
@@ -149,7 +141,7 @@ def _iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Call
         i = 0
     
     for node in list(G.nodes()):
-        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction)
+        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff)
 
         for neighbor in list(G.neighbors(node)):
             shortest_path = shortest_paths_to_neighbors[neighbor]
@@ -215,21 +207,6 @@ def _closure_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callab
     is_kind = 'is_{kind:s}'.format(kind=kind)
     metric_edges = [(u, v) for u, v in DC.edges() if DC[u][v][is_kind]]
     G = DC.edge_subgraph(metric_edges).copy()
-
-    if self_loops:
-        if kind == 'metric':
-            disjunction = sum
-        elif kind == 'ultrametric':
-            disjunction = max
-        elif kind == 'drastic':
-            disjunction = _drastic_disjunction
-            
-        for _, u in sloops:
-            for k in G.neighbors(u):
-                return_path = single_source_target_dijkstra_path(G, source=k, target=u, weight=weight, disjunction=disjunction, cutoff=cutoff-1)
-                spl = disjunction([G[u][k][weight], disjunction(G[return_path[idx-1]][return_path[idx]][weight] for idx in range(1, len(return_path)))])
-                if spl > D[u][u][weight]:
-                    G.add_edge(u, u, **D[u][u])
     
     if distortion:
         svals = _compute_distortions(D, G, weight=weight, kind=kind)         

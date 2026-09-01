@@ -3,6 +3,7 @@ Edge Measures from Distance Closure
 """
 
 from distanceclosure.backbone import metric_backbone, ultrametric_backbone
+from distanceclosure.closure import distance_closure
 import networkx as nx
 import numpy as np
 import multiprocessing as mp
