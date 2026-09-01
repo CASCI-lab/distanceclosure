@@ -11,15 +11,15 @@ import pandas as pd
 from scipy.sparse import csr_matrix
 import networkx as nx
 
-__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
-
 __all__ = [
     'prox2dist',
     'dist2prox',
     'dict2matrix',
     'matrix2dict',
     'dict2sparse',
-    'from_networkx_to_dijkstra_format'
+    'from_networkx_to_dijkstra_format',
+    's_values',
+    'b_values'
 ]
 
 
@@ -233,3 +233,4 @@ def from_networkx_to_dijkstra_format(D, weight='weight'):
     neighbors = {dict_nodes_int[i]: [dict_nodes_int[j] for j in D.neighbors(i)] for i in D.nodes()}
 
     return nodes, edges, neighbors, dict_int_nodes
+
