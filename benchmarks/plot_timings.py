@@ -9,7 +9,17 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-COMPARE = ("iterative", "flagged", "heuristic")
+COMPARE = (
+    "iterative",
+    "flagged",
+    "heuristic",
+    "annotated",
+    "annotated_twostep",
+    "annotated_heuristic",
+    "iterative_heuristic",
+    "iterative_weightcut",
+    "annotated_weightcut",
+)
 BASELINE = "closure"
 
 
@@ -46,7 +56,7 @@ def speedup_table(means: pd.DataFrame) -> pd.DataFrame:
 
 
 def make_plot(speedups: pd.DataFrame, out_path: Path) -> None:
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4.2), constrained_layout=True)
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.5), constrained_layout=True)
 
     # Left: wall time (log) with closure included for context
     ax = axes[0]
@@ -80,7 +90,7 @@ def make_plot(speedups: pd.DataFrame, out_path: Path) -> None:
     ax.legend(frameon=False)
     ax.grid(True, alpha=0.3)
 
-    fig.suptitle("Exact backbone algorithms vs closure", fontsize=12)
+    fig.suptitle("Backbone algorithms vs closure", fontsize=12)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150)
     plt.close(fig)

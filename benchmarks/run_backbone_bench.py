@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Benchmark the four exact distance-backbone algorithms on saved graphs."""
+"""Benchmark distance-backbone algorithms on saved graphs."""
 
 from __future__ import annotations
 
@@ -13,7 +13,21 @@ import networkx as nx
 
 from distanceclosure import distance_backbone
 
-ALGORITHMS = ("iterative", "flagged", "closure", "heuristic")
+EXACT_ALGORITHMS = (
+    "iterative",
+    "flagged",
+    "closure",
+    "heuristic",
+    "iterative_heuristic",
+    "iterative_weightcut",
+)
+ANNOTATED_ALGORITHMS = (
+    "annotated",
+    "annotated_twostep",
+    "annotated_heuristic",
+    "annotated_weightcut",
+)
+ALGORITHMS = EXACT_ALGORITHMS + ANNOTATED_ALGORITHMS
 WEIGHT_ATTR = "weight"
 
 
@@ -29,8 +43,20 @@ def edge_set(G: nx.Graph) -> set[tuple]:
     return {tuple(sorted(e)) for e in G.edges()}
 
 
+def run_algo(G: nx.Graph, algo: str):
+    return distance_backbone(
+        G,
+        weight=WEIGHT_ATTR,
+        kind="metric",
+        algorithm=algo,
+        distortion=False,
+        self_loops=False,
+        verbose=False,
+    )
+
+
 def spot_check(graphs_dir: Path, rows: list[dict]) -> None:
-    """Assert the four exact algorithms agree on the smallest graphs."""
+    """Assert all benchmarked algorithms agree on the smallest graphs."""
     if not rows:
         return
     min_n = min(int(r["n"]) for r in rows)
@@ -39,30 +65,17 @@ def spot_check(graphs_dir: Path, rows: list[dict]) -> None:
         if int(row["n"]) != min_n:
             continue
         G = nx.read_graphml(graphs_dir / row["path"])
-        # GraphML may store node ids as strings; algorithms are fine with that.
-        results = {
-            algo: edge_set(
-                distance_backbone(
-                    G,
-                    weight=WEIGHT_ATTR,
-                    kind="metric",
-                    algorithm=algo,
-                    distortion=False,
-                    self_loops=False,
-                    verbose=False,
-                )
-            )
-            for algo in ALGORITHMS
-        }
-        ref = results[ALGORITHMS[0]]
+        results = {algo: edge_set(run_algo(G, algo)) for algo in ALGORITHMS}
+        ref = results["iterative"]
         for algo, edges in results.items():
             if edges != ref:
                 raise AssertionError(
-                    f"Edge-set mismatch on {row['path']}: {ALGORITHMS[0]} vs {algo} "
-                    f"(|{ALGORITHMS[0]}|={len(ref)}, |{algo}|={len(edges)})"
+                    f"Edge-set mismatch on {row['path']}: iterative vs {algo} "
+                    f"(|iterative|={len(ref)}, |{algo}|={len(edges)}, "
+                    f"extra={len(edges - ref)}, missing={len(ref - edges)})"
                 )
         checked += 1
-        print(f"Spot-check OK: {row['path']} ({len(ref)} backbone edges)")
+        print(f"Spot-check OK: {row['path']} ({len(ref)} backbone edges, {len(ALGORITHMS)} algorithms)")
     print(f"Spot-check passed on {checked} graph(s) with n={min_n}")
 
 
@@ -91,15 +104,7 @@ def run_benchmarks(
             for trial in range(repeats):
                 G = nx.read_graphml(path)
                 t0 = time.perf_counter()
-                distance_backbone(
-                    G,
-                    weight=WEIGHT_ATTR,
-                    kind="metric",
-                    algorithm=algo,
-                    distortion=False,
-                    self_loops=False,
-                    verbose=False,
-                )
+                run_algo(G, algo)
                 elapsed = time.perf_counter() - t0
                 timing_rows.append(
                     {
@@ -111,7 +116,7 @@ def run_benchmarks(
                         "seconds": f"{elapsed:.6f}",
                     }
                 )
-                print(f"  {algo:10s} trial {trial}: {elapsed:.4f}s")
+                print(f"  {algo:18s} trial {trial}: {elapsed:.4f}s")
 
     with results_path.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -129,11 +134,11 @@ def print_summary(timing_rows: list[dict]) -> None:
         buckets[(int(row["n"]), row["algorithm"])].append(float(row["seconds"]))
 
     print("\nMean seconds by (n, algorithm):")
-    print(f"{'n':>6}  {'algorithm':12}  {'mean_s':>10}  {'trials':>6}")
+    print(f"{'n':>6}  {'algorithm':18}  {'mean_s':>10}  {'trials':>6}")
     for (n, algo) in sorted(buckets.keys(), key=lambda x: (x[0], ALGORITHMS.index(x[1]))):
         vals = buckets[(n, algo)]
         mean = sum(vals) / len(vals)
-        print(f"{n:6d}  {algo:12}  {mean:10.4f}  {len(vals):6d}")
+        print(f"{n:6d}  {algo:18}  {mean:10.4f}  {len(vals):6d}")
 
 
 def main() -> None:
@@ -154,7 +159,7 @@ def main() -> None:
     parser.add_argument(
         "--skip-spot-check",
         action="store_true",
-        help="Skip equality check of the four exact algorithms on smallest graphs",
+        help="Skip equality check of all algorithms on smallest graphs",
     )
     args = parser.parse_args()
 

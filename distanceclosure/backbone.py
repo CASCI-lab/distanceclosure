@@ -8,7 +8,14 @@ Compute the distance backbones of both directed and undirected weighted graphs.
 import numpy as np
 import networkx as nx
 
-from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path, single_source_neighbors_dijkstra_path_length
+from distanceclosure.dijkstra import (
+    single_source_dijkstra_path_length,
+    single_source_target_dijkstra_path,
+    single_source_neighbors_dijkstra_path_length,
+    single_source_neighbors_dijkstra_path_length_with_predecessors,
+    single_source_neighbors_dijkstra_path_length_weight_cutoff,
+    single_source_neighbors_dijkstra_path_length_with_predecessors_weight_cutoff,
+)
 from distanceclosure.closure import distance_closure
 
 from itertools import product
@@ -35,7 +42,7 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", kind: st
         Edge property containing distance values, by default 'weight'
     kind : {"metric", "ultrametric"}, optional
         Distance metric used to compute the backbone. "metric" uses sum and "ultrametric" uses max, by default "metric".
-    algorithm : {"iterative", "flagged", "closure", "heuristic", "approximate"}, optional
+    algorithm : {"iterative", "flagged", "closure", "heuristic", "approximate", "annotated", "annotated_twostep", "annotated_heuristic", "iterative_heuristic", "iterative_weightcut", "annotated_weightcut"}, optional
         Algorithm used to compute the backbone, by default "iterative".
     distortion : bool, optional
         Whether to compute edge distortion from edges not in backbone, by default False
@@ -133,15 +140,405 @@ def _flagged_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callab
     return G
 
     
-def _iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool , cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
-    G = D.copy()
-    
+def _edge_key(u, v, directed: bool):
+    if directed:
+        return (u, v)
+    return frozenset((u, v))
+
+
+def _mark_path_keep(path, keep: set, directed: bool) -> None:
+    for i in range(1, len(path)):
+        keep.add(_edge_key(path[i - 1], path[i], directed))
+
+
+def _path_from_predecessors(pred: dict, source, target) -> list:
+    path = [target]
+    while path[-1] != source:
+        prev = pred[path[-1]]
+        if prev is None:
+            raise KeyError(f"No predecessor path from {source} to {target}")
+        path.append(prev)
+    path.reverse()
+    return path
+
+
+def _all_remaining_edges_kept(G: nx.Graph | nx.DiGraph, keep: set, directed: bool) -> bool:
+    if len(keep) < G.number_of_edges():
+        return False
+    for u, v in G.edges():
+        if _edge_key(u, v, directed) not in keep:
+            return False
+    return True
+
+
+def _run_annotated_keep_pass(
+    G: nx.Graph | nx.DiGraph,
+    keep: set,
+    weight: str,
+    disjunction: Callable,
+    cutoff: int,
+    verbose: bool,
+    label: str,
+) -> nx.Graph | nx.DiGraph:
+    """Delete semi-metric edges and grow ``keep``, skipping already-kept edges."""
+    directed = nx.is_directed(G)
+
     if verbose:
         total = G.number_of_nodes()
         i = 0
-    
+
     for node in list(G.nodes()):
-        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff)
+        unchecked = [
+            neighbor
+            for neighbor in list(G.neighbors(node))
+            if _edge_key(node, neighbor, directed) not in keep
+        ]
+        if not unchecked:
+            continue
+
+        dist, pred = single_source_neighbors_dijkstra_path_length_with_predecessors(
+            G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff, targets=unchecked
+        )
+
+        for neighbor in unchecked:
+            if not G.has_edge(node, neighbor):
+                continue
+            if _edge_key(node, neighbor, directed) in keep:
+                continue
+
+            direct_path = G[node][neighbor][weight]
+            shortest_path = dist[neighbor]
+
+            if shortest_path < direct_path:
+                G.remove_edge(node, neighbor)
+                path = _path_from_predecessors(pred, node, neighbor)
+                _mark_path_keep(path, keep, directed)
+            else:
+                keep.add(_edge_key(node, neighbor, directed))
+
+        if _all_remaining_edges_kept(G, keep, directed):
+            break
+
+        if verbose:
+            i += 1
+            per = i / total
+            print(
+                "{label:s} : dijkstra : {disjunction:s} : {i:d} of {total:d} ({per:.2%})".format(
+                    label=label, i=i, total=total, per=per, disjunction=disjunction.__name__
+                )
+            )
+
+    return G
+
+
+def _annotated_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+    """Keep/delete backbone using one neighbors Dijkstra with predecessor reconstruction."""
+    G = D.copy()
+    keep: set = set()
+    G = _run_annotated_keep_pass(
+        G, keep, weight=weight, disjunction=disjunction, cutoff=cutoff, verbose=verbose,
+        label="Annotated Backbone",
+    )
+
+    if self_loops:
+        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
+
+    if distortion:
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)
+        return G, svals
+
+    return G
+
+
+def _annotated_heuristic_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+    """Annotated backbone seeded by local semi-triangle / triangular-edge keep marks."""
+    G = D.copy()
+    directed = nx.is_directed(G)
+
+    # Algorithm 1: drop edges witnessed by a local triangle
+    G = _local_semi_triangles(G, disjunction=disjunction, weight=weight)
+
+    # Algorithm 2: mark locally triangular edges as keep
+    backbone_edges = _local_triangular_edges(G, disjunction=disjunction, weight=weight)
+    keep = {_edge_key(source, target, directed) for source, target, _ in backbone_edges}
+
+    G = _run_annotated_keep_pass(
+        G, keep, weight=weight, disjunction=disjunction, cutoff=cutoff, verbose=verbose,
+        label="Annotated Heuristic Backbone",
+    )
+
+    if self_loops:
+        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
+
+    if distortion:
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)
+        return G, svals
+
+    return G
+
+
+def _annotated_weightcut_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+    """Annotated backbone using weight-cutoff neighbors Dijkstra."""
+    G = D.copy()
+    keep: set = set()
+    G = _run_annotated_weightcut_pass(
+        G, keep, weight=weight, disjunction=disjunction, cutoff=cutoff, verbose=verbose,
+        label="Annotated Weightcut Backbone",
+    )
+
+    if self_loops:
+        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
+
+    if distortion:
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)
+        return G, svals
+
+    return G
+
+
+def _run_annotated_weightcut_pass(
+    G: nx.Graph | nx.DiGraph,
+    keep: set,
+    weight: str,
+    disjunction: Callable,
+    cutoff: int,
+    verbose: bool,
+    label: str,
+) -> nx.Graph | nx.DiGraph:
+    directed = nx.is_directed(G)
+
+    if verbose:
+        total = G.number_of_nodes()
+        i = 0
+
+    for node in list(G.nodes()):
+        unchecked = [
+            neighbor
+            for neighbor in list(G.neighbors(node))
+            if _edge_key(node, neighbor, directed) not in keep
+        ]
+        if not unchecked:
+            continue
+
+        weight_cutoff = max(G[node][neighbor][weight] for neighbor in unchecked)
+        dist, pred = single_source_neighbors_dijkstra_path_length_with_predecessors_weight_cutoff(
+            G,
+            source=node,
+            weight_cutoff=weight_cutoff,
+            weight=weight,
+            disjunction=disjunction,
+            cutoff=cutoff,
+            targets=unchecked,
+        )
+
+        for neighbor in unchecked:
+            if not G.has_edge(node, neighbor):
+                continue
+            if _edge_key(node, neighbor, directed) in keep:
+                continue
+
+            direct_path = G[node][neighbor][weight]
+            shortest_path = dist.get(neighbor, np.inf)
+
+            if shortest_path < direct_path:
+                G.remove_edge(node, neighbor)
+                path = _path_from_predecessors(pred, node, neighbor)
+                _mark_path_keep(path, keep, directed)
+            else:
+                keep.add(_edge_key(node, neighbor, directed))
+
+        if _all_remaining_edges_kept(G, keep, directed):
+            break
+
+        if verbose:
+            i += 1
+            per = i / total
+            print(
+                "{label:s} : dijkstra : {disjunction:s} : {i:d} of {total:d} ({per:.2%})".format(
+                    label=label, i=i, total=total, per=per, disjunction=disjunction.__name__
+                )
+            )
+
+    return G
+
+
+def _annotated_twostep_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+    """Keep/delete backbone: neighbors lengths, then target path-find on each delete."""
+    G = D.copy()
+    directed = nx.is_directed(G)
+    keep: set = set()
+
+    if verbose:
+        total = G.number_of_nodes()
+        i = 0
+
+    for node in list(G.nodes()):
+        unchecked = [
+            neighbor
+            for neighbor in list(G.neighbors(node))
+            if _edge_key(node, neighbor, directed) not in keep
+        ]
+        if not unchecked:
+            continue
+
+        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(
+            G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff, targets=unchecked
+        )
+
+        for neighbor in unchecked:
+            if not G.has_edge(node, neighbor):
+                continue
+            if _edge_key(node, neighbor, directed) in keep:
+                continue
+
+            direct_path = G[node][neighbor][weight]
+            shortest_path = shortest_paths_to_neighbors[neighbor]
+
+            if shortest_path < direct_path:
+                G.remove_edge(node, neighbor)
+                path = single_source_target_dijkstra_path(
+                    G, source=node, target=neighbor, weight=weight, disjunction=disjunction, cutoff=cutoff
+                )
+                _mark_path_keep(path, keep, directed)
+            else:
+                keep.add(_edge_key(node, neighbor, directed))
+
+        if _all_remaining_edges_kept(G, keep, directed):
+            break
+
+        if verbose:
+            i += 1
+            per = i / total
+            print(
+                "Annotated Twostep Backbone : dijkstra : {disjunction:s} : {i:d} of {total:d} ({per:.2%})".format(
+                    i=i, total=total, per=per, disjunction=disjunction.__name__
+                )
+            )
+
+    if self_loops:
+        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
+
+    if distortion:
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)
+        return G, svals
+
+    return G
+
+
+def _iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool , cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+    G = D.copy()
+    G = _run_iterative_pass(G, weight=weight, disjunction=disjunction, cutoff=cutoff, verbose=verbose, label="Iterative Backbone")
+
+    if self_loops:
+        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
+     
+    if distortion:
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction, self_loops=self_loops)    
+        return G, svals
+
+    return G
+
+
+def _iterative_heuristic_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+    """Delete locally semi-triangular edges, then run the iterative backbone pass."""
+    G = D.copy()
+    G = _local_semi_triangles(G, disjunction=disjunction, weight=weight)
+    G = _run_iterative_pass(
+        G, weight=weight, disjunction=disjunction, cutoff=cutoff, verbose=verbose,
+        label="Iterative Heuristic Backbone",
+    )
+
+    if self_loops:
+        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
+
+    if distortion:
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction, self_loops=self_loops)
+        return G, svals
+
+    return G
+
+
+def _iterative_weightcut_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+    """Iterative backbone using weight-cutoff neighbors Dijkstra."""
+    G = D.copy()
+    G = _run_iterative_weightcut_pass(
+        G, weight=weight, disjunction=disjunction, cutoff=cutoff, verbose=verbose,
+        label="Iterative Weightcut Backbone",
+    )
+
+    if self_loops:
+        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
+
+    if distortion:
+        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction, self_loops=self_loops)
+        return G, svals
+
+    return G
+
+
+def _run_iterative_weightcut_pass(
+    G: nx.Graph | nx.DiGraph,
+    weight: str,
+    disjunction: Callable,
+    cutoff: int,
+    verbose: bool,
+    label: str,
+) -> nx.Graph | nx.DiGraph:
+    if verbose:
+        total = G.number_of_nodes()
+        i = 0
+
+    for node in list(G.nodes()):
+        targets = list(G.neighbors(node))
+        if not targets:
+            continue
+
+        weight_cutoff = max(G[node][neighbor][weight] for neighbor in targets)
+        dist = single_source_neighbors_dijkstra_path_length_weight_cutoff(
+            G,
+            source=node,
+            weight_cutoff=weight_cutoff,
+            weight=weight,
+            disjunction=disjunction,
+            cutoff=cutoff,
+            targets=targets,
+        )
+
+        for neighbor in targets:
+            if not G.has_edge(node, neighbor):
+                continue
+            direct_path = G[node][neighbor][weight]
+            if dist.get(neighbor, np.inf) < direct_path:
+                G.remove_edge(node, neighbor)
+
+        if verbose:
+            i += 1
+            per = i / total
+            print(
+                "{label:s} : dijkstra : {disjunction:s} : {i:d} of {total:d} ({per:.2%})".format(
+                    label=label, i=i, total=total, per=per, disjunction=disjunction.__name__
+                )
+            )
+
+    return G
+
+
+def _run_iterative_pass(
+    G: nx.Graph | nx.DiGraph,
+    weight: str,
+    disjunction: Callable,
+    cutoff: int,
+    verbose: bool,
+    label: str,
+) -> nx.Graph | nx.DiGraph:
+    if verbose:
+        total = G.number_of_nodes()
+        i = 0
+
+    for node in list(G.nodes()):
+        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(
+            G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff
+        )
 
         for neighbor in list(G.neighbors(node)):
             shortest_path = shortest_paths_to_neighbors[neighbor]
@@ -152,15 +549,12 @@ def _iterative_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Call
 
         if verbose:
             i += 1
-            per = i/total
-            print("Iterative Backbone : dijkstra : {disjunction:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, disjunction=disjunction.__name__))
-
-    if self_loops:
-        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
-     
-    if distortion:
-        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction, self_loops=self_loops)    
-        return G, svals
+            per = i / total
+            print(
+                "{label:s} : dijkstra : {disjunction:s} : {i:d} of {total:d} ({per:.2%})".format(
+                    label=label, i=i, total=total, per=per, disjunction=disjunction.__name__
+                )
+            )
 
     return G
 
@@ -443,7 +837,13 @@ _BACKBONE_ALGORITHMS = {
     "flagged": _flagged_backbone,
     "closure": _closure_backbone,
     "heuristic": _heuristic_backbone,
-    "approximate": _approximate_backbone
+    "approximate": _approximate_backbone,
+    "annotated": _annotated_backbone,
+    "annotated_twostep": _annotated_twostep_backbone,
+    "annotated_heuristic": _annotated_heuristic_backbone,
+    "iterative_heuristic": _iterative_heuristic_backbone,
+    "iterative_weightcut": _iterative_weightcut_backbone,
+    "annotated_weightcut": _annotated_weightcut_backbone,
 }
 
 _KINDS = {

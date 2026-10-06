@@ -19,7 +19,10 @@ __all__ = [
     "all_pairs_dijkstra_path_length",
     "single_source_dijkstra_path_length",
     "single_source_target_dijkstra_path",
-    "single_source_neighbors_dijkstra_path_length"
+    "single_source_neighbors_dijkstra_path_length",
+    "single_source_neighbors_dijkstra_path_length_with_predecessors",
+    "single_source_neighbors_dijkstra_path_length_weight_cutoff",
+    "single_source_neighbors_dijkstra_path_length_with_predecessors_weight_cutoff",
 ]
 
 def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum, cutoff=None):
@@ -266,11 +269,14 @@ def single_source_target_dijkstra_path(G, source, target, weight="weight", disju
     return paths[target]
 
 
-def single_source_neighbors_dijkstra_path_length(G, source, weight="weight", disjunction=sum, cutoff=None):
+def single_source_neighbors_dijkstra_path_length(G, source, weight="weight", disjunction=sum, cutoff=None, targets=None):
     if source not in G:
         raise nx.NodeNotFound(f"Source {source} not in G")
 
-    targets = set(G.neighbors(source))
+    if targets is None:
+        targets = set(G.neighbors(source))
+    else:
+        targets = set(targets)
     G_succ = G._adj #G._succ if G.is_directed() else G._adj
     weight_function = _weight_function(G, weight)
 
@@ -316,3 +322,212 @@ def single_source_neighbors_dijkstra_path_length(G, source, weight="weight", dis
                 push(fringe, (vu_dist, next(c), u))
 
     return dist
+
+
+def single_source_neighbors_dijkstra_path_length_with_predecessors(
+    G, source, weight="weight", disjunction=sum, cutoff=None, targets=None
+):
+    """Like ``single_source_neighbors_dijkstra_path_length``, also return predecessors.
+
+    Parameters
+    ----------
+    targets : iterable, optional
+        Nodes that must be settled before early-stopping. Defaults to all
+        neighbors of ``source``. Pass a subset (e.g. unchecked neighbors) to
+        avoid waiting on already-decided adjacent edges.
+
+    Returns
+    -------
+    dist : dict
+        Shortest distance from ``source`` to each reached node.
+    pred : dict
+        Predecessor of each reached node on a shortest path from ``source``.
+        ``pred[source]`` is ``None``.
+    """
+    if source not in G:
+        raise nx.NodeNotFound(f"Source {source} not in G")
+
+    if targets is None:
+        targets = set(G.neighbors(source))
+    else:
+        targets = set(targets)
+    G_succ = G._adj
+    weight_function = _weight_function(G, weight)
+
+    if cutoff is not None:
+        paths = {source: [source]}
+    else:
+        paths = None
+
+    push = heappush
+    pop = heappop
+
+    dist = {}
+    seen = {}
+    pred = {source: None}
+    c = count()
+    fringe = []
+
+    seen[source] = 0
+    push(fringe, (0, next(c), source))
+    while fringe:
+        (d, _, v) = pop(fringe)
+        if v in dist:
+            continue
+        dist[v] = d
+        targets.discard(v)
+        if not targets:
+            break
+        for u, e in G_succ[v].items():
+            cost = weight_function(v, u, e)
+            if cost is None:
+                continue
+            vu_dist = disjunction([dist[v], cost])
+            if u in dist:
+                u_dist = dist[u]
+                if vu_dist < u_dist:
+                    raise ValueError("Contradictory paths found:", "negative weights?")
+            elif u not in seen or vu_dist < seen[u]:
+                if paths is not None and len(paths[v]) > cutoff:
+                    continue
+                if paths is not None:
+                    paths[u] = paths[v] + [u]
+
+                pred[u] = v
+                seen[u] = vu_dist
+                push(fringe, (vu_dist, next(c), u))
+
+    return dist, pred
+
+
+def single_source_neighbors_dijkstra_path_length_weight_cutoff(
+    G, source, weight_cutoff, weight="weight", disjunction=sum, cutoff=None, targets=None
+):
+    """Neighbors Dijkstra that ignores paths with length ``>= weight_cutoff``.
+
+    Paths at or above ``weight_cutoff`` cannot strictly beat any direct edge
+    whose weight is at most ``weight_cutoff``, so they are never pushed.
+    Targets that never appear in ``dist`` had no path lighter than
+    ``weight_cutoff`` (treat as keep for backbone deletion checks).
+
+    Early-stops when all ``targets`` are settled or the fringe is exhausted.
+    """
+    if source not in G:
+        raise nx.NodeNotFound(f"Source {source} not in G")
+
+    if targets is None:
+        targets = set(G.neighbors(source))
+    else:
+        targets = set(targets)
+    G_succ = G._adj
+    weight_function = _weight_function(G, weight)
+
+    if cutoff is not None:
+        paths = {source: [source]}
+    else:
+        paths = None
+
+    push = heappush
+    pop = heappop
+
+    dist = {}
+    seen = {}
+    c = count()
+    fringe = []
+
+    seen[source] = 0
+    push(fringe, (0, next(c), source))
+    while fringe:
+        (d, _, v) = pop(fringe)
+        if v in dist:
+            continue
+        dist[v] = d
+        targets.discard(v)
+        if not targets:
+            break
+        for u, e in G_succ[v].items():
+            cost = weight_function(v, u, e)
+            if cost is None:
+                continue
+            vu_dist = disjunction([dist[v], cost])
+            if vu_dist >= weight_cutoff:
+                continue
+            if u in dist:
+                u_dist = dist[u]
+                if vu_dist < u_dist:
+                    raise ValueError("Contradictory paths found:", "negative weights?")
+            elif u not in seen or vu_dist < seen[u]:
+                if paths is not None and len(paths[v]) > cutoff:
+                    continue
+                if paths is not None:
+                    paths[u] = paths[v] + [u]
+
+                seen[u] = vu_dist
+                push(fringe, (vu_dist, next(c), u))
+
+    return dist
+
+
+def single_source_neighbors_dijkstra_path_length_with_predecessors_weight_cutoff(
+    G, source, weight_cutoff, weight="weight", disjunction=sum, cutoff=None, targets=None
+):
+    """Like ``..._weight_cutoff``, also return predecessors.
+
+    Missing targets in ``dist`` mean no path with length ``< weight_cutoff``.
+    """
+    if source not in G:
+        raise nx.NodeNotFound(f"Source {source} not in G")
+
+    if targets is None:
+        targets = set(G.neighbors(source))
+    else:
+        targets = set(targets)
+    G_succ = G._adj
+    weight_function = _weight_function(G, weight)
+
+    if cutoff is not None:
+        paths = {source: [source]}
+    else:
+        paths = None
+
+    push = heappush
+    pop = heappop
+
+    dist = {}
+    seen = {}
+    pred = {source: None}
+    c = count()
+    fringe = []
+
+    seen[source] = 0
+    push(fringe, (0, next(c), source))
+    while fringe:
+        (d, _, v) = pop(fringe)
+        if v in dist:
+            continue
+        dist[v] = d
+        targets.discard(v)
+        if not targets:
+            break
+        for u, e in G_succ[v].items():
+            cost = weight_function(v, u, e)
+            if cost is None:
+                continue
+            vu_dist = disjunction([dist[v], cost])
+            if vu_dist >= weight_cutoff:
+                continue
+            if u in dist:
+                u_dist = dist[u]
+                if vu_dist < u_dist:
+                    raise ValueError("Contradictory paths found:", "negative weights?")
+            elif u not in seen or vu_dist < seen[u]:
+                if paths is not None and len(paths[v]) > cutoff:
+                    continue
+                if paths is not None:
+                    paths[u] = paths[v] + [u]
+
+                pred[u] = v
+                seen[u] = vu_dist
+                push(fringe, (vu_dist, next(c), u))
+
+    return dist, pred
