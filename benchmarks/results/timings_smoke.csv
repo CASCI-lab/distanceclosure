@@ -1,0 +1,5 @@
+n,m,seed,algorithm,trial,seconds
+50,204,50000,iterative,0,0.010131
+50,204,50000,flagged,0,0.011077
+50,204,50000,closure,0,0.034795
+50,204,50000,heuristic,0,0.036853

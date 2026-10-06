@@ -1,0 +1,16 @@
+path,n,m,seed,model,c
+er_n50_r0.graphml,50,204,50000,fast_gnp,8.0
+er_n50_r1.graphml,50,192,50001,fast_gnp,8.0
+er_n50_r2.graphml,50,199,50002,fast_gnp,8.0
+er_n100_r0.graphml,100,345,100000,fast_gnp,8.0
+er_n100_r1.graphml,100,400,100001,fast_gnp,8.0
+er_n100_r2.graphml,100,407,100002,fast_gnp,8.0
+er_n200_r0.graphml,200,762,200000,fast_gnp,8.0
+er_n200_r1.graphml,200,757,200001,fast_gnp,8.0
+er_n200_r2.graphml,200,815,200002,fast_gnp,8.0
+er_n400_r0.graphml,400,1583,400000,fast_gnp,8.0
+er_n400_r1.graphml,400,1599,400001,fast_gnp,8.0
+er_n400_r2.graphml,400,1505,400002,fast_gnp,8.0
+er_n800_r0.graphml,800,3213,800000,fast_gnp,8.0
+er_n800_r1.graphml,800,3001,800001,fast_gnp,8.0
+er_n800_r2.graphml,800,3203,800002,fast_gnp,8.0

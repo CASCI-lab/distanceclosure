@@ -201,7 +201,7 @@ def _closure_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callab
     elif disjunction == _drastic_disjunction:
         kind = "drastic"
 
-    DC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, existing_edges_only=True, self_loops=self_loops, verbose=verbose)
+    DC = distance_closure(D, kind=kind, weight=weight, existing_edges_only=True, self_loops=self_loops, verbose=verbose)
 
     is_kind = 'is_{kind:s}'.format(kind=kind)
     metric_edges = [(u, v) for u, v in DC.edges() if DC[u][v][is_kind]]
