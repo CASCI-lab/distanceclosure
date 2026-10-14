@@ -18,8 +18,6 @@ __all__ = [
     'matrix2dict',
     'dict2sparse',
     'from_networkx_to_dijkstra_format',
-    's_values',
-    'b_values'
 ]
 
 
