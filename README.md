@@ -11,7 +11,7 @@ This package implements methods to calculate the Distance Closure of Complex Net
 Installation
 ---------------
 
-Latest development release on GitHub (v0.7):
+Latest development release on GitHub (v1.0):
 
 ```
 pip install git+https://github.com/CASCI-lab/distanceclosure
@@ -87,6 +87,15 @@ Credits
 
 ``distanceclosure`` was originally written by Rion Brattig Correia with input from many others. Thanks to everyone who has improved ``distanceclosure`` by contributing code, bug reports (and fixes), documentation, and input on design, and features.
 
+**Original Author**
+
+- [Rion Brattig Correia](https://rionbr.github.io/), github: [rionbr](https://github.com/rionbr)
+
+**Contributors**
+
+- Felipe Xavier Costa, github: [fxcosta-phd](https://github.com/fxcosta-phd)
+- Robert Palermo, github: [robertjosephpalermo](https://github.com/robertjosephpalermo)
+
 
 Support
 -------
@@ -105,9 +114,12 @@ Pull requests are welcome :) Please get in touch beforehand: `fcosta(at)binghamt
 
 Changelog
 ---------
+v1.0
+- Implemented [KSL](https://doi.org/10.14778/2947618.2947623) algorithm and novel STLP
+- Implemented closure computation up to a "cutoff" steps
 
 v0.7
-- Implemented "self-loop" backbone comparison
+- Implemented "self-loop" backbone computation
 
 v0.6.1
 - Remove leaked code
