@@ -5,10 +5,11 @@ Distance Backbone
 
 Compute the distance backbones of both directed and undirected weighted graphs.
 """
+
 import numpy as np
 import networkx as nx
 
-from distanceclosure.dijkstra import single_source_dijkstra_path_length, single_source_target_dijkstra_path, single_source_neighbors_dijkstra_path_length
+from distanceclosure.dijkstra import single_source_target_dijkstra_path, single_source_neighbors_dijkstra_path_length
 from distanceclosure.closure import distance_closure
 
 from itertools import product
@@ -87,7 +88,7 @@ def ultrametric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", disto
     """
     Compute the ultrametric backbone of a weighted graph.
 
-    This is a wrapper for :func:`distance_backbone`
+    This is a wrapper for :[weight]func:`distance_backbone`
     where ``kind="ultrametric"`` and ``algorithm="stlp"``.
     """
 
@@ -104,17 +105,16 @@ def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, dis
     B = nx.DiGraph() if nx.is_directed(G) else nx.Graph()
 
     if verbose: 
-        total = G.number_of_nodes()
-        i = 0
+        total_nodes = G.number_of_nodes() 
+        total_nodes_checked = 0
 
-    for node in list(G.nodes()):
-        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff)
+    for node in G.nodes():
+        shortest_distances = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff)
+        
+        for neighbor in G.neighbors(node):
+            direct_edge = G[node][neighbor]
 
-        for neighbor in list(G.neighbors(node)):
-            shortest_path = shortest_paths_to_neighbors[neighbor]
-            direct_path = G[node][neighbor][weight]
-
-            if shortest_path < direct_path:
+            if shortest_distances[neighbor] < direct_edge[weight]:
                 G.remove_edge(node, neighbor)
             else:
                 B.add_edge(node, neighbor)
@@ -123,20 +123,22 @@ def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, dis
             break    
 
         if verbose:
-            i += 1
-            per = i / total
-            print("TTLP Backbone : dijkstra : {disjunction:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, disjunction=disjunction.__name__))
+            total_nodes_checked += 1
+            total_progress = total_nodes_checked / total_nodes
+
+            print(f"TTLP Backbone : dijkstra : {disjunction.__name__} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
 
     if self_loops:
         G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
     
     if distortion:
-        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction)
-        return G, svals
+        distortions = _compute_distortions(D, G, weight=weight, disjunction=disjunction)
+        
+        return G, distortions
 
     return G
 
-    
+
 def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool , cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Semi-Triangular Local Pruning (STLP)
@@ -145,30 +147,31 @@ def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, dis
     G = D.copy()
     
     if verbose:
-        total = G.number_of_nodes()
-        i = 0
+        total_nodes = G.number_of_nodes()
+        total_nodes_checked = 0
     
-    for node in list(G.nodes()):
-        shortest_paths_to_neighbors = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff)
+    for node in G.nodes():
+        shortest_paths = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff)
 
-        for neighbor in list(G.neighbors(node)):
-            shortest_path = shortest_paths_to_neighbors[neighbor]
-            direct_path = G[node][neighbor][weight]
+        for neighbor in G.neighbors(node):
+            direct_edge = G[node][neighbor]
 
-            if shortest_path < direct_path:
+            if shortest_paths[neighbor] < direct_edge[weight]:
                 G.remove_edge(node, neighbor)
 
         if verbose:
-            i += 1
-            per = i/total
-            print("STLP Backbone : dijkstra : {disjunction:s} : {i:d} of {total:d} ({per:.2%})".format(i=i, total=total, per=per, disjunction=disjunction.__name__))
+            total_nodes_checked += 1
+            total_progress = total_nodes_checked / total_nodes
+
+            print(f"STLP Backbone : dijkstra : {disjunction.__name__} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
 
     if self_loops:
         G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
      
     if distortion:
-        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction, self_loops=self_loops)    
-        return G, svals
+        distortions = _compute_distortions(D, G, weight=weight, disjunction=disjunction, self_loops=self_loops)    
+        
+        return G, distortions
 
     return G
 
@@ -347,18 +350,18 @@ def _remove_semi_triangular_self_loops(G: nx.Graph | nx.DiGraph, weight: str, di
     
     return G
 
-def _local_semi_triangles(graph: nx.Graph | nx.DiGraph, disjunction: Callable, weight: str = 'weight') -> nx.Graph | nx.DiGraph:
-    for a in graph.nodes():
-        neighbors = list(graph[a])
+def _local_semi_triangles(G: nx.Graph | nx.DiGraph, disjunction: Callable, weight: str = 'weight') -> nx.Graph | nx.DiGraph:
+    for a in G.nodes():
+        neighbors = list(G[a])
         triangles_to_check = product(neighbors, neighbors)
         for b, c in triangles_to_check:
-            if graph.has_edge(a, c) and graph.has_edge(c, b) and graph.has_edge(a, b):
-                ac = graph[a][c][weight]
-                cb = graph[c][b][weight]
-                ab = graph[a][b][weight]
+            if G.has_edge(a, c) and G.has_edge(c, b) and G.has_edge(a, b):
+                ac = G[a][c][weight]
+                cb = G[c][b][weight]
+                ab = G[a][b][weight]
                 if disjunction([ cb, ac ]) < ab:
-                    graph.remove_edge(a, b)
-    return graph
+                    G.remove_edge(a, b)
+    return G
 
 
 def _local_triangular_edges(graph: nx.Graph | nx.DiGraph, disjunction: Callable, weight: str = 'weight') -> nx.Graph | nx.DiGraph:
