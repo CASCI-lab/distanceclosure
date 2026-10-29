@@ -23,8 +23,7 @@ __all__ = [
 ]
 
 
-# Public
-def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", kind: str = "metric", algorithm: str = "stlp", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry: str = "metric", algorithm: str = "stlp", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Compute the distance backbone of a weighted graph.
 
@@ -33,19 +32,19 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", kind: st
     D : Directed or undirected NetworkX graph
         A weighted distance graph
     weight : str, optional
-        Edge property containing distance values, by default 'weight'
-    kind : {"metric", "ultrametric"}, optional
-        Distance metric used to compute the backbone. "metric" uses sum and "ultrametric" uses max, by default "metric".
+        Edge property containing distance values, ``weight="weight"`` by default.
+    geometry : {"metric", "ultrametric"}, optional
+        Distance metric used to compute the backbone. "metric" uses sum and "ultrametric" uses max, ``kind="metric"`` by default.
     algorithm : {"stlp", "ttlp", "closure", "ksl", "approximate"}, optional
-        Algorithm used to compute the backbone, by default "stlp".
+        Algorithm used to compute the backbone, ``algorithm="stlp"`` by default.
     distortion : bool, optional
-        Whether to compute edge distortion from edges not in backbone, by default False
+        Whether to compute edge distortion from edges not in backbone, ``distortion=False`` by default.
     self_loops : bool, optional
-        If the distance graph has nodes with self distance greater than zero, by default False
+        If the distance graph has nodes with self distance greater than zero,``self_loops=False`` by default. 
     cutoff : int, optional
-        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
+        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, ``cutoff=None`` by default.
     verbose : bool, optional
-        Whether to display progress information, by default False.
+        Whether to display progress information, ``verbose=False`` by default.
 
     Returns
     -------
@@ -56,21 +55,24 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", kind: st
 
     Raises
     ------
-    ValueError
-        If ``kind`` or ``algorithm`` is invalid.
+    KeyError 
+        If ``kind`` is not a valid key in ``_KINDS`` or ``algorithm`` is not a valid key in ``_BACKBONE_ALGORITHMS``.
     """
 
     try:
-        disjunction = _KINDS[kind]
+        chosen_td_norm = _GEOMETRY[geometry]
     except KeyError:
-        raise ValueError("Invalid input. Valid arguments are: {_KINDS:s}".format(_KINDS=_KINDS.keys()))
+        raise ValueError(f"Invalid input. Valid arguments are: {list(_GEOMETRY)}") from None
 
     try:
         chosen_algorithm = _BACKBONE_ALGORITHMS[algorithm]
     except KeyError:
-        raise ValueError("Invalid input. Valid arguments are: {_BACKBONE_ALGORITHMS:s}".format(_BACKBONE_ALGORITHMS=_BACKBONE_ALGORITHMS.keys()))
+        raise ValueError(f"Invalid input. Valid arguments are: {list(_BACKBONE_ALGORITHMS)}") from None
     
-    return chosen_algorithm(D, weight=weight, disjunction=disjunction, distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
+    if chosen_algorithm is _BACKBONE_ALGORITHMS["closure"]:
+        return chosen_algorithm(D, weight=weight, geometry=geometry, td_norm=chosen_td_norm, distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
+    
+    return chosen_algorithm(D, weight=weight, td_norm=chosen_td_norm, distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
 
 def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
@@ -78,10 +80,10 @@ def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion
     Compute the metric backbone of a weighted graph.
 
     This is a wrapper for :func:`distance_backbone`
-    where ``kind="metric"`` and ``algorithm="stlp"``.
+    where ``geometry="metric"`` and ``algorithm="stlp"``.
     """
 
-    return distance_backbone(D, weight=weight, algorithm="stlp", kind="metric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
+    return distance_backbone(D, weight=weight, algorithm="stlp", geometry="metric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
 
 def ultrametric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
@@ -92,13 +94,41 @@ def ultrametric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", disto
     where ``kind="ultrametric"`` and ``algorithm="stlp"``.
     """
 
-    return distance_backbone(D, weight=weight, algorithm="stlp", kind="ultrametric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
+    return distance_backbone(D, weight=weight, algorithm="stlp", geometry="ultrametric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
 
 # Private 
-def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
-    Triangularity Tagging with Local Pruning (TTLP)
+    Compute the distance backbone using the Triangularity Tagging with Local Pruning (TTLP) algorithm.
+
+    For each node in a weighted graph, use Dijkstra's algorithm to find the shortest path to each neighbor. 
+    If the direct edge is not a shortest path, remove it. Otherwise, add it to an auxiliary graph.
+    Stop when the auxiliary and input graphs have the same number of edges.
+
+    Parameters
+    ----------
+    D : Directed or undirected NetworkX graph
+        A weighted distance graph.
+    weight : str
+        Edge property containing distance values.
+    td_norm : Callable
+        Function used to measure path distance.
+    distortion : bool
+        Whether to compute and return the edge distortions of edges not in the backbone.
+    self_loops : bool
+        Whether to remove self-loops that have a shorter path back to the same node.
+    cutoff : int
+        Maximum number of connections to be searched per path.
+    verbose : bool
+        Whether to display computation progress.
+
+    Returns
+    -------
+    nx.Graph or nx.DiGraph
+        The distance backbone.
+    tuple of (nx.Graph or nx.DiGraph, dict)
+        Edge distortions, returned with the backbone when ``distortion=True``.
     """
         
     G = D.copy()
@@ -109,7 +139,7 @@ def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, dis
         total_nodes_checked = 0
 
     for node in G.nodes():
-        shortest_distances = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff)
+        shortest_distances = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=td_norm, cutoff=cutoff)
         
         for neighbor in G.neighbors(node):
             direct_edge = G[node][neighbor]
@@ -126,22 +156,49 @@ def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, dis
             total_nodes_checked += 1
             total_progress = total_nodes_checked / total_nodes
 
-            print(f"TTLP Backbone : dijkstra : {disjunction.__name__} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
+            print(f"TTLP Backbone : dijkstra : {td_norm.__name__} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
 
     if self_loops:
-        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
+        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=td_norm)
     
     if distortion:
-        distortions = _compute_distortions(D, G, weight=weight, disjunction=disjunction)
+        distortions = _compute_distortions(D, G, weight=weight, disjunction=td_norm)
         
         return G, distortions
 
     return G
 
 
-def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool , cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distortion: bool, self_loops: bool , cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
-    Semi-Triangular Local Pruning (STLP)
+    Compute the distance backbone Semi-Triangular Local Pruning (STLP) algorithm.
+
+    For each node in a weighted graph, use Dijkstra's algorithm to find the shortest path to each neighbor. 
+    If the direct edge is not the shortest path, remove it.
+
+    Parameters
+    ----------
+    D : Directed or undirected NetworkX graph
+        A weighted distance graph.
+    weight : str
+        Edge property containing distance values.
+    td_norm : Callable
+        Function used to measure path distance.
+    distortion : bool
+        Whether to compute and return the edge distortions of edges not in the backbone.
+    self_loops : bool
+        Whether to remove self-loops that have a shorter path back to the same node.
+    cutoff : int
+        Maximum number of connections to be searched per path.
+    verbose : bool
+        Whether to display computation progress.
+
+    Returns
+    -------
+    nx.Graph or nx.DiGraph
+        The distance backbone.
+    tuple of (nx.Graph or nx.DiGraph, dict)
+        Edge distortions, returned with the backbone when ``distortion=True``.
     """
     
     G = D.copy()
@@ -151,7 +208,7 @@ def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, dis
         total_nodes_checked = 0
     
     for node in G.nodes():
-        shortest_paths = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=disjunction, cutoff=cutoff)
+        shortest_paths = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=td_norm, cutoff=cutoff)
 
         for neighbor in G.neighbors(node):
             direct_edge = G[node][neighbor]
@@ -163,23 +220,24 @@ def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, dis
             total_nodes_checked += 1
             total_progress = total_nodes_checked / total_nodes
 
-            print(f"STLP Backbone : dijkstra : {disjunction.__name__} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
+            print(f"STLP Backbone : dijkstra : {td_norm.__name__} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
 
     if self_loops:
-        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
+        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=td_norm)
      
     if distortion:
-        distortions = _compute_distortions(D, G, weight=weight, disjunction=disjunction, self_loops=self_loops)    
+        distortions = _compute_distortions(D, G, weight=weight, disjunction=td_norm, self_loops=self_loops)    
         
         return G, distortions
 
     return G
 
 
-def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
-    # Come back and fix this once I am done with the closure
+def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
-    Backbone computation considering the closure.
+    Compute the distance backbone using the closure algorithm.
+
+    Compute the distance closure. Remove direct edges that are not labeled as shortest paths.
 
     Parameters
     ----------
@@ -187,7 +245,7 @@ def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, 
         The Distance graph
     weight : str, optional
         Edge property containing distance values, by default 'weight'
-    kind : str, optional
+    geometry : str, optional
         Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
     distortion : bool, optional
         Whether to compute edge distortion from edges not in backbone, by default False
@@ -204,28 +262,22 @@ def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, 
         The backbone subgraph.
 
     """
+    G = D.copy()
+    DC = distance_closure(G, geometry=geometry, weight=weight, td_norm=td_norm, existing_edges_only=True, self_loops=self_loops, verbose=verbose)
 
-    if disjunction == sum:
-        kind = "metric"
-    elif disjunction == max:
-        kind = "ultrametric"
-    elif disjunction == _drastic_disjunction:
-        kind = "drastic"
-
-    DC = distance_closure(D, kind=kind, algorithm='dijkstra', weight=weight, existing_edges_only=True, self_loops=self_loops, verbose=verbose)
-
-    is_kind = 'is_{kind:s}'.format(kind=kind)
-    metric_edges = [(u, v) for u, v in DC.edges() if DC[u][v][is_kind]]
+    internal_label = f"is_{geometry}"
+    metric_edges = [(u, v) for u, v in DC.edges() if DC[u][v][internal_label]]
     G = DC.edge_subgraph(metric_edges).copy()
     
     if distortion:
-        svals = _compute_distortions(D, G, weight=weight, kind=kind, self_loops=self_loops)
-        return G, svals
+        distortions = _compute_distortions(D, G, weight=weight, kind=td_norm, self_loops=self_loops)
+
+        return G, distortions 
 
     return G
 
 
-def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Backbone computation combining triangle search based on "Kalavri-Simas-Logothetis (KSL), 2016, Proceedings of the VLDB Endowment, Volume 9, Issue 9".
 
@@ -261,10 +313,10 @@ def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, dist
     G = D.copy()
 
     # Algorithm 1, page 676
-    G = _local_semi_triangles(G, disjunction=disjunction, weight=weight)
+    G = _local_semi_triangles(G, disjunction=td_norm, weight=weight)
 
     # Algorithm 2, page 677
-    backbone_edges = _local_triangular_edges(G, disjunction=disjunction, weight=weight)
+    backbone_edges = _local_triangular_edges(G, disjunction=td_norm, weight=weight)
 
     metric_backbone = {(source, target) for source, target, _ in backbone_edges}
     unlabeled_edges = [(source, target) for source, target in G.edges() if (source, target) not in metric_backbone]
@@ -274,10 +326,10 @@ def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, dist
     remaining_metric_edges = []
     for source, target in unlabeled_edges:
         
-        path = single_source_target_dijkstra_path(G, source=source, target=target, weight=weight, disjunction=disjunction, cutoff=cutoff)
+        path = single_source_target_dijkstra_path(G, source=source, target=target, weight=weight, disjunction=td_norm, cutoff=cutoff)
         
         path_weights = [G[path[idx-1]][path[idx]][weight] for idx in range(1, len(path))]
-        shortest_path_length = disjunction(path_weights)
+        shortest_path_length = td_norm(path_weights)
 
         if G[source][target][weight] <= shortest_path_length:
             remaining_metric_edges.append((source, target))
@@ -286,11 +338,10 @@ def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, dist
     G = G.edge_subgraph(final_edges).copy()
 
     if self_loops:
-        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
+        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=td_norm)
 
-    # Compute Distortion
     if distortion:
-        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction, self_loops=self_loops)
+        svals = _compute_distortions(D, G, weight=weight, disjunction=td_norm, self_loops=self_loops)
         return G, svals
     
     return G
@@ -457,7 +508,7 @@ _BACKBONE_ALGORITHMS = {
     "approximate": _approximate_backbone
 }
 
-_KINDS = {
+_GEOMETRY = {
     "metric": sum,
     "ultrametric": max,
     "drastic": _drastic_disjunction

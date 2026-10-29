@@ -16,7 +16,7 @@ __all__ = [
     "distance_closure"
 ]
 
-def distance_closure(D: nx.Graph | nx.DiGraph, kind='metric', weight='weight', existing_edges_only=False, self_loops=False, verbose=False) -> nx.Graph | nx.DiGraph: 
+def distance_closure(D: nx.Graph | nx.DiGraph, weight='weight', geometry='metric', existing_edges_only=False, self_loops=False, verbose=False) -> nx.Graph | nx.DiGraph: 
     """
     Compute the distance closure of a weighted graph.
 
@@ -24,10 +24,10 @@ def distance_closure(D: nx.Graph | nx.DiGraph, kind='metric', weight='weight', e
     ----------
     D : nx.Graph or nx.DiGraph
         Directed or undirected distance graph.
-    kind : {"metric", "ultrametric"}, optional
-        Type of distance closure to compute. Default is ``"metric"``.
     weight : str, optional
         Edge attribute containing distance values. Default is ``"weight"``.
+    geometry : {"metric", "ultrametric"}, optional
+        Type of distance closure to compute. Default is ``"metric"``.
     existing_edges_only : bool, optional
         If False, add closure edges between reachable non-adjacent nodes.
     self_loops : bool, optional
@@ -48,15 +48,14 @@ def distance_closure(D: nx.Graph | nx.DiGraph, kind='metric', weight='weight', e
     """
 
     try:
-        disjunction = _KINDS[kind]
+        chosen_td_norm = _GEOMETRY[geometry]
     except KeyError:
-        raise ValueError("Invalid input. Valid arguments are: {_KINDS:s}".format(_KINDS=_KINDS.keys()))
+        raise ValueError(f"Invalid input. Valid arguments are: {list(_GEOMETRY)}")
 
-    return _closure(D, kind=kind, disjunction=disjunction, weight=weight, existing_edges_only=existing_edges_only, self_loops=self_loops, verbose=verbose)
+    return _closure(D, geometry=geometry, td_norm=chosen_td_norm, weight=weight, existing_edges_only=existing_edges_only, self_loops=self_loops, verbose=verbose)
 
 
-# Private
-def _closure(D: nx.Graph | nx.DiGraph, kind: str, disjunction: Callable, weight: str, existing_edges_only: bool, self_loops: bool, verbose: bool) -> nx.Graph | nx.DiGraph:
+def _closure(D: nx.Graph | nx.DiGraph, geometry: str, td_norm: Callable, weight: str, existing_edges_only: bool, self_loops: bool, verbose: bool) -> nx.Graph | nx.DiGraph:
     """
     Compute the distance closure using all-pairs shortest paths (APSP)
     with two different shortest path measures on a weighted distance graph.
@@ -90,32 +89,34 @@ def _closure(D: nx.Graph | nx.DiGraph, kind: str, disjunction: Callable, weight:
         or ``ultrametric_distance`` attribute.
         
     """
+    if verbose:
+        total_nodes = G.number_of_nodes()
+        total_nodes_checked = 1
 
     G = D.copy() 
     edges_seen = set()
-    total = G.number_of_nodes()
     edges_to_add = []
 
-    i = 1
-    for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, disjunction=disjunction):
+    for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, disjunction=td_norm):
         if verbose:
-            per = i / total
-            print("Distance Closure : dijkstra : {kind:s} : {i:d} of {total:d} ({per:.2%})".format(kind=kind, i=i, total=total, per=per))
+            total_progress = total_nodes_checked / total_nodes
+            print(f"Distance Closure : dijkstra : {geometry} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
+            
         for v, length in lengths.items():
             if (u, v) in edges_seen or u == v:
                 continue
             else:
                 edges_seen.add((u, v))
-                kind_distance = '{kind:s}_distance'.format(kind=kind)
-                is_kind = 'is_{kind:s}'.format(kind=kind)
+                distance_label = f"{geometry}_distance"
+                geometry_label = f"is_{geometry}"
 
                 if not G.has_edge(u, v):
                     if not existing_edges_only:
-                        edges_to_add.append((u, v, {weight: np.inf, kind_distance: length}))
+                        edges_to_add.append((u, v, {weight: np.inf, distance_label: length}))
                 else:
-                    G[u][v][kind_distance] = length
-                    G[u][v][is_kind] = True if (length == G[u][v][weight]) else False
-            i += 1
+                    G[u][v][distance_label] = length
+                    G[u][v][geometry_label] = True if (length == G[u][v][weight]) else False
+            total_nodes_checked += 1
 
     if self_loops:
         for u in G.nodes():
@@ -125,26 +126,26 @@ def _closure(D: nx.Graph | nx.DiGraph, kind: str, disjunction: Callable, weight:
                 length = G[u][u][weight]
 
             for k in G.neighbors(u):
-                return_path = single_source_target_dijkstra_path(G, source=k, target=u, weight=weight, disjunction=disjunction)
-                spl = disjunction([G[u][k][weight], disjunction(G[return_path[idx-1]][return_path[idx]][weight] for idx in range(1, len(return_path)))])
+                return_path = single_source_target_dijkstra_path(G, source=k, target=u, weight=weight, disjunction=td_norm)
+                spl = td_norm([G[u][k][weight], td_norm(G[return_path[idx-1]][return_path[idx]][weight] for idx in range(1, len(return_path)))])
                 if spl < length:
                     length = spl
             
-            kind_distance = '{kind:s}_distance'.format(kind=kind)
-            is_kind = 'is_{kind:s}'.format(kind=kind)
+            distance_label = '{kind:s}_distance'.format(kind=geometry)
+            geometry_label = 'is_{kind:s}'.format(kind=geometry)
             if not G.has_edge(u, u):
                 if not existing_edges_only:
-                    edges_to_add.append((u, u, {weight: np.inf, kind_distance: length}))
+                    edges_to_add.append((u, u, {weight: np.inf, distance_label: length}))
             else:
-                G[u][u][kind_distance] = length
-                G[u][u][is_kind] = True if (length == G[u][u][weight]) else False
+                G[u][u][distance_label] = length
+                G[u][u][geometry_label] = True if (length == G[u][u][weight]) else False
     
     G.add_edges_from(edges_to_add)
 
     return G
 
 
-_KINDS = {
+_GEOMETRY = {
     "metric": sum,
     "ultrametric": max,
 }
