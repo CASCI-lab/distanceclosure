@@ -4,6 +4,11 @@ Distance Backbone
 =================
 
 Compute the distance backbones of both directed and undirected weighted graphs.
+
+Authors
+-------
+Felipe Xavier Costa <fcosta@binghamton.edu>
+Robert Palermo <rpalermo@binghamton.edu>
 """
 
 import numpy as np
@@ -13,7 +18,7 @@ from distanceclosure.dijkstra import single_source_target_dijkstra_path, single_
 from distanceclosure.closure import distance_closure
 
 from itertools import product
-from typing import Callable
+from collections.abc import Callable
 
 
 __all__ = [
@@ -58,7 +63,7 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry
     KeyError 
         If ``kind`` is not a valid key in ``_KINDS`` or ``algorithm`` is not a valid key in ``_BACKBONE_ALGORITHMS``.
     """
-
+    
     try:
         chosen_td_norm = _GEOMETRY[geometry]
     except KeyError:
@@ -159,11 +164,10 @@ def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
             print(f"TTLP Backbone : dijkstra : {td_norm.__name__} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
 
     if self_loops:
-        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=td_norm)
+        G = _remove_semi_triangular_self_loops(G, weight=weight, td_norm=td_norm)
     
     if distortion:
-        distortions = _compute_distortions(D, G, weight=weight, disjunction=td_norm)
-        
+        distortions = _compute_distortions(D, G, weight=weight, td_norm=td_norm)
         return G, distortions
 
     return G
@@ -208,12 +212,12 @@ def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
         total_nodes_checked = 0
     
     for node in G.nodes():
-        shortest_paths = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=td_norm, cutoff=cutoff)
+        shortest_distances = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, td_norm=td_norm, cutoff=cutoff)
 
         for neighbor in G.neighbors(node):
             direct_edge = G[node][neighbor]
 
-            if shortest_paths[neighbor] < direct_edge[weight]:
+            if shortest_distances[neighbor] < direct_edge[weight]:
                 G.remove_edge(node, neighbor)
 
         if verbose:
@@ -223,11 +227,10 @@ def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
             print(f"STLP Backbone : dijkstra : {td_norm.__name__} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
 
     if self_loops:
-        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=td_norm)
+        G = _remove_semi_triangular_self_loops(G, weight=weight, td_norm=td_norm)
      
     if distortion:
-        distortions = _compute_distortions(D, G, weight=weight, disjunction=td_norm, self_loops=self_loops)    
-        
+        distortions = _compute_distortions(D, G, weight=weight, td_norm=td_norm, self_loops=self_loops)    
         return G, distortions
 
     return G
@@ -266,12 +269,11 @@ def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm:
     DC = distance_closure(G, geometry=geometry, weight=weight, td_norm=td_norm, existing_edges_only=True, self_loops=self_loops, verbose=verbose)
 
     internal_label = f"is_{geometry}"
-    metric_edges = [(u, v) for u, v in DC.edges() if DC[u][v][internal_label]]
-    G = DC.edge_subgraph(metric_edges).copy()
+    triangular_edges = [(source, target) for source, target in DC.edges() if DC[source][target][internal_label]]
+    G = DC.edge_subgraph(triangular_edges).copy()
     
     if distortion:
-        distortions = _compute_distortions(D, G, weight=weight, kind=td_norm, self_loops=self_loops)
-
+        distortions = _compute_distortions(D, G, weight=weight, td_norm=td_norm, self_loops=self_loops)
         return G, distortions 
 
     return G
@@ -313,53 +315,52 @@ def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distorti
     G = D.copy()
 
     # Algorithm 1, page 676
-    G = _local_semi_triangles(G, disjunction=td_norm, weight=weight)
+    G = _remove_local_semi_triangular_edges(G, td_norm=td_norm, weight=weight)
 
     # Algorithm 2, page 677
-    backbone_edges = _local_triangular_edges(G, disjunction=td_norm, weight=weight)
+    backbone_edges = _identify_local_triangular_edges(G, td_norm=td_norm, weight=weight)
 
-    metric_backbone = {(source, target) for source, target, _ in backbone_edges}
-    unlabeled_edges = [(source, target) for source, target in G.edges() if (source, target) not in metric_backbone]
+    backbone = {(source, target) for source, target, _ in backbone_edges}
+    unlabeled_edges = [(source, target) for source, target in G.edges() if (source, target) not in backbone]
 
 
     # Algorithm 3, page 677
-    remaining_metric_edges = []
+    remaining_triangular_edges = []
     for source, target in unlabeled_edges:
         
-        path = single_source_target_dijkstra_path(G, source=source, target=target, weight=weight, disjunction=td_norm, cutoff=cutoff)
+        path = single_source_target_dijkstra_path(G, source=source, target=target, weight=weight, td_norm=td_norm, cutoff=cutoff)
         
         path_weights = [G[path[idx-1]][path[idx]][weight] for idx in range(1, len(path))]
         shortest_path_length = td_norm(path_weights)
 
         if G[source][target][weight] <= shortest_path_length:
-            remaining_metric_edges.append((source, target))
+            remaining_triangular_edges.append((source, target))
     
-    final_edges = list(metric_backbone) + remaining_metric_edges
+    final_edges = list(backbone) + remaining_triangular_edges
     G = G.edge_subgraph(final_edges).copy()
 
     if self_loops:
-        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=td_norm)
+        G = _remove_semi_triangular_self_loops(G, weight=weight, td_norm=td_norm)
 
     if distortion:
-        svals = _compute_distortions(D, G, weight=weight, disjunction=td_norm, self_loops=self_loops)
+        svals = _compute_distortions(D, G, weight=weight, td_norm=td_norm, self_loops=self_loops)
         return G, svals
     
     return G
 
 
-def _approximate_backbone(D: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable, distortion: bool, self_loops: bool, cutoff: int) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _approximate_backbone(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distortion: bool, self_loops: bool, cutoff: int) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     G = D.copy()
 
     # Algorithm 1, page 676
-    G = _local_semi_triangles(G, disjunction=disjunction, weight=weight)
+    G = _remove_local_semi_triangular_edges(G, td_norm=td_norm, weight=weight)
 
     if self_loops:
-        G = _remove_semi_triangular_self_loops(G, weight=weight, disjunction=disjunction)
+        G = _remove_semi_triangular_self_loops(G, weight=weight, td_norm=td_norm)
 
-    # Compute Distortion
     if distortion:
-        svals = _compute_distortions(D, G, weight=weight, disjunction=disjunction, self_loops=self_loops)
-        return G, svals
+        distortions = _compute_distortions(D, G, weight=weight, td_norm=td_norm, self_loops=self_loops)
+        return G, distortions 
     
     return G
 
@@ -372,7 +373,7 @@ def _drastic_disjunction(iterable: list[float]) -> float:
         return np.inf   
 
 
-def _remove_semi_triangular_self_loops(G: nx.Graph | nx.DiGraph, weight: str, disjunction: Callable) -> nx.Graph | nx.DiGraph:
+def _remove_semi_triangular_self_loops(G: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable) -> nx.Graph | nx.DiGraph:
     """
     Remove self-loops that are semi-triangular, i.e., there exists a neighbor k of u such that the path u -> k -> u is shorter than the self-loop u -> u.
 
@@ -382,78 +383,83 @@ def _remove_semi_triangular_self_loops(G: nx.Graph | nx.DiGraph, weight: str, di
         The graph to process.
     weight : str
         Edge property containing distance values, by default 'weight'
-    disjunction : Callable
+    td_norm : Callable
         Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
     """
 
     edges_to_remove = []
-    for u in nx.nodes_with_selfloops(G):
-        length = G[u][u][weight]
-        for k in G.neighbors(u):
-            if k != u:
-                return_path_length = single_source_neighbors_dijkstra_path_length(G, source=k, weight=weight, disjunction=disjunction)
-                spl = disjunction([G[u][k][weight], return_path_length[u]])
-                if spl < length:
-                    edges_to_remove.append((u, u))
+    for node in nx.nodes_with_selfloops(G):
+        self_loop = G[node][node]
+        
+        for neighbor in G.neighbors(node):
+            if neighbor != node:
+                path_length = single_source_neighbors_dijkstra_path_length(G, source=neighbor, weight=weight, td_norm=td_norm)
+                direct_path = G[node][neighbor]
+                alternative_loop_length = td_norm([ direct_path[weight], path_length[node] ])
+                
+                if alternative_loop_length < self_loop[weight]:
+                    edges_to_remove.append((node, node))
                     break
-
+                
     G.remove_edges_from(edges_to_remove)
     
     return G
 
-def _local_semi_triangles(G: nx.Graph | nx.DiGraph, disjunction: Callable, weight: str = 'weight') -> nx.Graph | nx.DiGraph:
-    for a in G.nodes():
-        neighbors = list(G[a])
+def _remove_local_semi_triangular_edges(G: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str = 'weight') -> nx.Graph | nx.DiGraph:
+    for node in G.nodes():
+        neighbors = list(G.neighbors(node))
         triangles_to_check = product(neighbors, neighbors)
-        for b, c in triangles_to_check:
-            if G.has_edge(a, c) and G.has_edge(c, b) and G.has_edge(a, b):
-                ac = G[a][c][weight]
-                cb = G[c][b][weight]
-                ab = G[a][b][weight]
-                if disjunction([ cb, ac ]) < ab:
-                    G.remove_edge(a, b)
+        
+        for neighbor_1, neighbor_2 in triangles_to_check:
+            if G.has_edge(node, neighbor_1) and G.has_edge(neighbor_2, neighbor_1) and G.has_edge(node, neighbor_2):
+                direct_edge_1 = G[node][neighbor_1][weight]
+                direct_edge_2 = G[node][neighbor_2][weight]
+                connecting_edge = G[neighbor_2][neighbor_1][weight]
+
+                if td_norm([ connecting_edge, direct_edge_2 ]) < direct_edge_1:
+                    G.remove_edge(node, neighbor_1)
     return G
 
 
-def _local_triangular_edges(graph: nx.Graph | nx.DiGraph, disjunction: Callable, weight: str = 'weight') -> nx.Graph | nx.DiGraph:
+def _identify_local_triangular_edges(G: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str = 'weight') -> nx.Graph | nx.DiGraph:
     U = {}
-    for source in graph.nodes():
-        neighbors = [(source, target, data[weight]) for target, data in graph[source].items()]
-        U[source] = sorted(neighbors, key=lambda item: item[2])
+    for node in G.nodes():
+        neighbors = [(node, target, data[weight]) for target, data in G[node].items()]
+        U[node] = sorted(neighbors, key=lambda item: item[2])
 
-    metric_edges = set()
-    for source in graph.nodes():
-        if not U[source]:
+    triangular_edges = set()
+    for node in G.nodes():
+        if not U[node]:
             continue
 
         weights_for_comparison = set()
-        metric = True
+        triangular = True
 
-        removed_pair = U[source].pop(0)
-        metric_edges.add(removed_pair)
+        removed_pair = U[node].pop(0)
+        triangular_edges.add(removed_pair)
         
-        while U[source]:
-            e = U[source].pop(0)
-            for _, target, _ in metric_edges:
-                if graph.has_edge(source, target) and U[target]:
-                    w_x = disjunction([graph[source][target][weight], U[target][0][2]])
+        while U[node]:
+            e = U[node].pop(0)
+            for _, target, _ in triangular_edges:
+                if G.has_edge(node, target) and U[target]:
+                    w_x = td_norm([ G[node][target][weight], U[target][0][2] ])
                     weights_for_comparison.add(w_x)
             
             for w in weights_for_comparison:
                 if e[2] > w:
-                    metric = False
+                    triangular = False
                     break
 
-            if metric:
-                metric_edges.add(e)
+            if triangular:
+                triangular_edges.add(e)
                 weights_for_comparison = set()
             else:
-                return metric_edges
+                return triangular_edges
             
-    return metric_edges
+    return triangular_edges
 
 
-def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, disjunction: Callable, weight: str, self_loops: bool = False) -> dict:
+def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str, self_loops: bool = False) -> dict:
     """
     Compute distortions of edges not in backbone.
 
@@ -478,27 +484,31 @@ def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, dis
     G = D.copy()
     G.remove_edges_from(B.edges())
 
-    sloops = dict()
+    all_self_loops = dict()
     if self_loops:
-        for u in nx.nodes_with_selfloops(G):
-            length = G[u][u][weight]
-            for k in G.neighbors(u):
-                return_path_length = single_source_neighbors_dijkstra_path_length(B, source=k, weight=weight, disjunction=disjunction)
-                spl = disjunction([G[u][k][weight], return_path_length[u]])
-                if spl < length:
-                    length = spl
-            sloops[u] = length
+        for node in nx.nodes_with_selfloops(G):
+            self_loop = G[node][node]
+            
+            for neighbor in G.neighbors(node):
+                return_path_length = single_source_neighbors_dijkstra_path_length(B, source=neighbor, weight=weight, td_norm=td_norm)
+                direct_path = G[node][neighbor]
+                alternative_self_loop = td_norm([ direct_path[weight], return_path_length[node] ])
+                
+                if alternative_self_loop < self_loop[weight]:
+                    self_loop[weight] = alternative_self_loop
+            
+            all_self_loops[node] = self_loop
 
-    svals = dict()        
-    for u in G.nodes():
-        metric_dist = single_source_neighbors_dijkstra_path_length(B, source=u, weight=weight, disjunction=disjunction)
-        for v in G.neighbors(u):
-            if (v == u) and self_loops:
-                svals[(u, v)] = G[u][v][weight]/sloops[u]
+    distortions = dict()        
+    for node in G.nodes():
+        shortest_distances = single_source_neighbors_dijkstra_path_length(B, source=node, weight=weight, td_norm=td_norm)
+        for neighbor in G.neighbors(node):
+            if (neighbor == node) and self_loops:
+                distortions[(node, neighbor)] = G[node][neighbor][weight] / all_self_loops[node]
             else:
-                svals[(u, v)] = G[u][v][weight]/metric_dist[v]
+                distortions[(node, neighbor)] = G[node][neighbor][weight] / shortest_distances[neighbor]
     
-    return svals   
+    return distortions   
 
 _BACKBONE_ALGORITHMS = {
     "stlp": _from_stlp,

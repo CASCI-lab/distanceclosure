@@ -1,25 +1,36 @@
 # -*- coding: utf-8 -*-
 """
 Utils
-==========================
+=====
 
 Utility functions for the Distance Closure package
+
+Authors
+-------
+Rion Brattig Correia <rionbr@gmail.com>
+Felipe Xavier Costa <fcosta@binghamton.edu>
 """
 
 import numpy as np
-import pandas as pd
-from scipy.sparse import csr_matrix
-import networkx as nx
+import scipy.sparse as sp
+from scipy.sparse import csr_matrix, lil_matrix
+from scipy.spatial.distance import cdist, squareform, jaccard
+from itertools import combinations
+import warnings
 
-__all__ = [
-    'prox2dist',
-    'dist2prox',
-    'dict2matrix',
-    'matrix2dict',
-    'dict2sparse',
-    'from_networkx_to_dijkstra_format',
+__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
+__metrics__ = [
+    'jaccard', 'scipy',  # Numeric Jaccard (scipy.spatial.distance)
+    'jaccard_binary', 'jb',  # Binary Jaccard Coefficient
+    'jaccard_set', 'js',  # Set Comparison Jaccard Coefficient
+    'jaccard_weighted', 'weighted_jaccard', 'wj'  # Weighted Jaccard
 ]
 
+__all__ = [
+    "pairwise_proximity",
+    "prox2dist",
+    "dist2prox"
+]
 
 def prox2dist(p):
     """Transforms a non-negative ``[0,1]`` proximity to distance in the ``[0,inf]`` interval:
@@ -79,156 +90,246 @@ def dist2prox(d):
         return (d + 1) ** -1
 
 
-def dict2matrix(d):
+def pairwise_proximity(M, metric='jaccard', *args, **kwargs):
     """
-    Tranforms a 2D dictionary into a numpy. Usefull when converting Dijkstra results.
+    Calculates pairwise proximity coefficient between rows of a matrix.
+    Three types of Jaccard proximity is available depending on your data.
 
     Parameters
     ----------
-        d (dict): 2D dictionary
+    M : matrix
+        Adjacency matrix
+
+    metric : str
+        Jaccard proximity metric.
+        Allowed values:
+
+            - ``jaccard_binary``, ``jb``: binary item-wise comparison.
+            - ``jaccard`` (scipy.spatial.dist.jaccard): numeric item-wise comparison.
+            - ``jaccard_set``, ``js``: set comparison.
+            - ``weighted_jaccard``, ``wj``: weighted item-wise comparison.
+
+        Note: Also accepts a custom function being passed.
+
+    min_support : int (Optional)
+        The minimum support passed to the metric function.
+
+    verbose : bool
+        Print every line as it computes.
 
     Returns
     -------
-    m : Numpy matrix
-
-    Warning
-    -------
-    If your nodes are identified by names instead of numbers, make sure to keep a mapping.
+    M :matrix
+        The matrix of proximities
 
     Examples
     --------
-    >>> d = {0: {0: 0, 1: 1, 2:3}, 1: {0: 1, 1: 0, 2:2}, 2: {0: 3, 1:2, 2:0}}
-    >>> dict2matrix(d)
-        [[ 0 1 3]
-         [ 1 0 2]
-         [ 3 2 0]]
 
-    Note
-    ----
-    Uses pandas to accomplish this in a one liner.
+    There are four ways to compute the proximity, here are some examples:
 
-    See Also
-    --------
-    matrix2dict
+    >>> # Numeric Matrix (not necessarily a network)
+    >>> N = np.array([
+        [2,3,4,2],
+        [2,3,4,2],
+        [2,3,3,2],
+        [2,1,3,4]])
+
+    >>> # Binary Adjacency Matrix
+    >>> B = np.array([
+        [1,1,1,1],
+        [1,1,1,0],
+        [1,1,0,0],
+        [1,0,0,0]])
+
+    >>> # Weighted Adjacency Matrix
+    >>> W = np.array([
+        [4,3,2,1],
+        [3,2,1,0],
+        [2,1,0,0],
+        [1,0,0,0]])
+
+
+    Numeric Jaccard: the default and most commonly used version. Implemented from `scipy.spatial.distance`.
+
+    >>> pairwise_proximity(N, metric='jaccard')
+        [[ 1. , 1.  , 0.75, 0.25],
+        [ 1.  , 1.  , 0.75, 0.25],
+        [ 0.75, 0.75, 1.  , 0.5 ],
+        [ 0.25, 0.25, 0.5 , 1.  ]]
+
+    Binary Jaccard: the default and most commonly used version.
+
+    >>> pairwise_proximity(B, metric='jaccard_binary')
+        [[ 1. , 0.75, 0.5 , 0.25],
+        [ 0.75, 1.  , 0.66, 0.33],
+        [ 0.5 , 0.66, 1.  , 0.5 ],
+        [ 0.25, 0.33, 0.5 , 1.  ]]
+
+    Set Jaccard: it treats the values in each vector as a set of objects, therefore their order is not taken into account.
+    Note that zeroes are treated as a set item.
+
+    >>> pairwise_proximity(B, metric='jaccard_set')
+        [[ 1., 0.6 , 0.4 , 0.2 ],
+        [ 0.6, 1.  , 0.75, 0.5 ],
+        [ 0.4, 0.75, 1.  , 0.67],
+        [ 0.2, 0.5 , 0.67, 1.  ]]
+
+    Weighted Jaccard: the version for weighted graphs.
+
+    >>> pairwise_proximity(W, metric='jaccard_weighted')
+        [ 1.,   0.6,  0.3,  0.1],
+        [ 0.6,  1.,   0.,   0. ],
+        [ 0.3,  0.,   1.,   0. ],
+        [ 0.1,  0.,   0.,   1. ],
     """
-    return pd.DataFrame.from_dict(d).values
+
+    # Numpy object
+    if (type(M).__module__ == np.__name__):
+        return _pairwise_proximity_numpy(M, metric, *args, **kwargs)
+    elif (sp.issparse(M)):
+        return _pairwise_proximity_sparse(M, metric, *args, **kwargs)
+    else:
+        raise TypeError("Input is not a valid object, try a numpy array")
 
 
-def matrix2dict(m):
-    """
-    Tranforms a Numpy matrix into a 2D dictionary. Usefull when comparing dense metric and Dijkstra results.
+def _pairwise_proximity_numpy(M, metric='jaccard', *args, **kwargs):
+    """ Pairwise proximity computation over dense matrix (numpy) """
 
-    Parameters
-    ----------
-        m (matrix): numpy matrix
+    # If is not a Numpy array
+    if type(M) != 'numpy.ndarray':
+        M = np.array(M)
 
-    Returns
-    -------
-        d (dict): 2D dictionary
+    # If matrix has negative entries
+    if M.min() < 0:
+        raise TypeError("Matrix cannot have negative numbers")
 
-    Examples
-    --------
-    >>> m = [[0, 1, 3], [1, 0, 2], [3, 2, 0]]
-    >>> matrix2dict(m)
-        {0: {0: 0, 1: 1, 2:3}, 1: {0: 1, 1: 0, 2:2}, 2: {0: 3, 1:2, 2:0}}
+    # Get coef (metric) function from string
+    if isinstance(metric, str):
+        coef = _get_dense_metric_function(metric)
+    # or a function was passed
+    else:
+        coef = metric
 
-    Note
-    ----
-    Uses pandas to accomplish this in a one liner.
+    # Verbose Attr
+    verbose = kwargs.pop('verbose', False)
 
-    See Also
-    --------
-    dict2matrix
+    # Calculate proximity
+    m, n = M.shape
+    pm = np.zeros((m * (m - 1)) // 2, dtype=np.double)
 
-    """
-    return pd.DataFrame(m).to_dict()
+    k = 0
+    for i in range(0, m - 1):
+        if verbose:
+            print('calc row:', i, 'of', m - 1)
+        for j in range(i + 1, m):
+            pm[k] = coef(M[i, :], M[j, :], *args, **kwargs)
+            k += 1
 
-
-def dict2sparse(d):
-    """
-    Tranforms a 2D dictionary into a Scipy sparse matrix.
-
-    Parameters
-    ----------
-    d : dict
-        2D dictionary
-
-    Returns
-    -------
-    m : CSR matrix
-        CRS Sparse Matrix
-
-    Examples
-    --------
-    >>> d = {0: {0: 0, 1: 1, 2:3}, 1: {0: 1, 1: 0, 2:2}, 2: {0: 3, 1:2, 2:0}}
-    >>> dict2sparse(d)
-        (0, 1)    1
-        (0, 2)    3
-        (1, 0)    1
-        (1, 2)    2
-        (2, 0)    3
-        (2, 1)    2
-
-    Note
-    ----
-    Uses pandas to convert dict into dataframe and then feeds it to the `csr_matrix`.
-
-    See Also
-    --------
-    dict2matrix
-    matrix2dict
-
-    """
-    return csr_matrix(pd.DataFrame.from_dict(d, orient='index').values)
+    pm = squareform(pm)  # Make into a matrix format
+    np.fill_diagonal(pm, 1)  # Fill diagonal
+    return pm
 
 
-def from_networkx_to_dijkstra_format(D, weight='weight'):
-    """
-    Converts a ``NetworkX.Graph`` object to input variables to be used by ``cython.dijkstra``.
+def _pairwise_proximity_sparse(X, metric='jaccard', *args, **kwargs):
+    """ Pairwise proximity computation over sparse matrix (scipy.sparse) """
 
-    Parameters
-    ----------
-    D : NetworkX:Graph
-        The Distance graph.
+    # Get coef (metric) function from string
+    if isinstance(metric, str):
+        how, coef = _get_sparse_metric_function(metric)
+    # or a function was passed
+    else:
+        how, coef = metric
 
-    weight : string
-        The edge property to use as distance weight.
+    if how == 'indices':
+        generator = (coef(row1.indices, row2.indices) for row1, row2 in combinations(X, r=2))
+    elif how == 'values':
+        generator = (coef(row1.data, row2.data) for row1, row2 in combinations(X, r=2))
+    elif how == 'both':
+        generator = (coef(row1.toarray(), row2.toarray()) for row1, row2 in combinations(X, r=2))
 
-    Returns
-    -------
-    nodes : list
-        List of all nodes converted to sequential numbers.
-
-    edges : list
-        List of all edges.
-
-    neighbors : dict
-        Dictionary containing the neighborhood of every node in a fast access format.
-
-    dict_int_nodes : dict
-        The mapping between original node names and the numeric node names.
+    S_flattened = np.fromiter(generator, dtype=np.float64)
+    S = squareform(S_flattened)
+    S = lil_matrix(S)
+    S.setdiag(1, k=0)
+    return S.tocsr()
 
 
-    Examples
-    --------
-    >>> G = nx.path(5)
-    >>> nx.set_edge_attributes(G, name='distance', values=1)
-    >>> nodes, edges, neighbors, dict_int_nodes = from_networkx_to_dijkstra_format(G, weight='distance')
-    """
-    if not isinstance(D, nx.classes.graph.Graph):
-        raise NotImplementedError("This is on the TODO list. For now, only undirected nx.Graphs() are accepted.")
+def _jaccard_coef_scipy(u, v, min_support=1):
+    if np.sum(u) + np.sum(v) >= min_support:
+        return 1 - jaccard(u, v)
+    else:
+        return 0.
 
-    dict_nodes_int = {u: i for i, u in enumerate(D.nodes())}
-    dict_int_nodes = {i: u for u, i in dict_nodes_int.items()}
 
-    nodes = list(dict_nodes_int.values())
+def _jaccard_coef_binary(u, v, min_support=1):
+    u = u.astype(bool)
+    v = v.astype(bool)
+    if np.sum(u + v) >= min_support:
+        return (np.double(np.bitwise_and(u, v).sum()) / np.double(np.bitwise_or(u, v).sum()))
+    else:
+        return 0.
 
-    edges_ij = {(dict_nodes_int[i], dict_nodes_int[j]): d[weight] for i, j, d in D.edges(data=True)}
-    edges_ji = {(dict_nodes_int[j], dict_nodes_int[i]): d[weight] for i, j, d in D.edges(data=True)}
 
-    edges = {**edges_ij, **edges_ji}
+def _jaccard_coef_set(u, v, min_support=1):
+    u = set(u)
+    v = set(v)
+    inter_len = len(u.intersection(v))
+    union_len = len(u) + len(v) - inter_len
+    if union_len >= min_support:
+        return np.double(inter_len) / np.double(union_len)
+    else:
+        return 0.
 
-    neighbors = {dict_nodes_int[i]: [dict_nodes_int[j] for j in D.neighbors(i)] for i in D.nodes()}
 
-    return nodes, edges, neighbors, dict_int_nodes
+def _jaccard_coef_weighted_numpy(u, v, min_support=10):
+    VMax = np.maximum(u, v)  # Find maximum Values
+    if np.sum(VMax) >= min_support:  # Only compute when MAX()
+        VMin = np.minimum(u, v)  # Find minimum Values
+        sumMin = np.sum(VMin)  # Sum values
+        sumMax = np.sum(VMax)
+        coef = np.true_divide(sumMin, sumMax)  # (Sum Min) / (Sum Max)
+        return coef
+    else:
+        return 0.
 
+
+def _check_for_metric_type(metric):
+    if metric not in __metrics__:
+        raise TypeError("Metric kind should be one of: '" + "' '".join(__metrics__) + "'")
+
+
+def _get_dense_metric_function(metric):
+
+    _check_for_metric_type(metric)
+
+    if metric in ['jaccard', 'scipy', 'j']:
+        # in practice it computes the dissimilarity, so 1-dissimilarity
+        return _jaccard_coef_scipy
+
+    elif metric in ['jaccard_binary', 'jb']:
+        return _jaccard_coef_binary
+
+    elif metric in ['jaccard_set', 'js']:
+        warnings.warn('Zeros will be considered as a item set.')
+        return _jaccard_coef_set
+
+    elif metric in ['jaccard_weighted', 'weighted_jaccard', 'wj']:
+        return _jaccard_coef_weighted_numpy
+
+
+def _get_sparse_metric_function(metric):
+
+    _check_for_metric_type(metric)
+
+    if metric in ['jaccard', 'scipy']:
+        # in practice it computes the dissimilarity, so 1-dissimilarity
+        return ('values', _jaccard_coef_scipy)
+
+    if metric in ['jaccard_binary', 'jb']:
+        return ('indices', _jaccard_coef_set)
+
+    elif metric in ['jaccard_set', 'js']:
+        return ('values', _jaccard_coef_set)
+
+    elif metric in ['jaccard_weighted', 'weighted_jaccard', 'wj']:
+        return ('both', _jaccard_coef_weighted_numpy)

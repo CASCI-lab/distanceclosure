@@ -1,5 +1,12 @@
 """
-Edge Measures from Distance Closure
+Edge Measures
+=============
+
+Authors
+-------
+Felipe Xavier Costa  <fcosta@binghamton.edu>
+Rion Brattig Correia <rionbr@gmail.com>
+Bernardo Pereira <mbernardogp@gmail.com>
 """
 
 from distanceclosure.backbone import metric_backbone, ultrametric_backbone
@@ -9,10 +16,6 @@ import numpy as np
 import multiprocessing as mp
 
 
-__name__ = 'distanceclosure'
-__author__ = """\n""".join(['Felipe Xavier Costa <fcosta@binghamton.com>',
-                            'Bernardo Pereira <mbernardogp@gmail.com>'])
-
 __all__ = [
     "edge_distortion",
     "dombi_synthesis",
@@ -20,24 +23,24 @@ __all__ = [
 ]
 
 
-def edge_distortion(D, weight='weight', kind='metric', self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
-    
-    if kind == 'metric':
-        G, svals = metric_backbone(D, weight=weight, distortion=True, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
-    elif kind == 'ultrametric':
-        G, svals = ultrametric_backbone(D, weight=weight, distortion=True, self_loops=self_loops, cutoff=cutoff, verbose=verbose, *args, **kwargs)
+def edge_distortion(D: nx.Graph | nx.DiGraph, weight: str = 'weight', geometry: str = 'metric', self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph: 
+    if geometry == 'metric':
+        backbone, distortions = metric_backbone(D, weight=weight, distortion=True, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
+    elif geometry == 'ultrametric':
+        backbone, distortions = ultrametric_backbone(D, weight=weight, distortion=True, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
     else:
-        raise ValueError("Invalid kind. Choose 'metric' or 'ultrametric'.")
+        raise ValueError("Invalid input. Choose 'metric' or 'ultrametric'.")
 
-    for u, v in G.edges():
-        svals[(u, v)] = 1.0
-        
-    nx.set_edge_attributes(D, values=svals, name=f'{kind}_distortion')
+    for source, target in backbone.edges():
+        distortions[(source, target)] = 1.0
     
-    return D
+    G = D.copy()
+    nx.set_edge_attributes(G, values=distortions, name=f"{geometry}_distortion")
+    
+    return G 
 
 
-def below_average_ratio(D, weight='weight', kind='metric', self_loops=False, cutoff=None, verbose=False, *args, **kwargs):
+def below_average_ratio(D: nx.Graph | nx.DiGraph, weight: str = 'weight', geometry: str = 'metric', self_loops: bool = False, cutoff: int = None, verbose: bool = False):
     """
     Computes below-average ratios for each edge with infinite distance, thus not existing in the original distance graph.
     The formal definition is as follow:
@@ -64,7 +67,7 @@ def below_average_ratio(D, weight='weight', kind='metric', self_loops=False, cut
     This computation takes a while.
     """
 
-    GC = distance_closure(D, weight=weight, kind=kind, only_reweight=False, self_loops=False, cutoff=None, verbose=verbose, *args, **kwargs)
+    GC = distance_closure(D, weight=weight, geometry=geometry, only_reweight=False, self_loops=False, cutoff=None, verbose=verbose)
 
     if GC.is_directed():
         sout = GC.out_degree(weight=weight)
@@ -78,7 +81,7 @@ def below_average_ratio(D, weight='weight', kind='metric', self_loops=False, cut
     G = nx.DiGraph()
     G.add_nodes_from(GC.nodes(data=True))
 
-    for u, v, d in GC.edges(data=f'{kind:s}_distance'):
+    for u, v, d in GC.edges(data=f'{geometry:s}_distance'):
         if not D.has_edge(u, v):
             G.add_weighted_edge(u, v, ratio=mean_distance[u]/d)
             if not GC.is_directed():

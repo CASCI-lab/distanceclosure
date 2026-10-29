@@ -4,6 +4,12 @@ Distance Closure
 ================
 
 Compute the distance closure of a weighted graph.
+
+Authors
+-------
+Rion Brattig Correia <rionbr@gmail.com>
+Felipe Xavier Costa <fcosta@binghamton.edu>
+Robert Palermo <rpalermo@binghamton.edu>
 """
 
 import numpy as np
