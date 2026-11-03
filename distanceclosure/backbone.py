@@ -143,10 +143,10 @@ def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
         total_nodes = G.number_of_nodes() 
         total_nodes_checked = 0
 
-    for node in G.nodes():
-        shortest_distances = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, disjunction=td_norm, cutoff=cutoff)
+    for node in list(G.nodes()):
+        shortest_distances = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, td_norm=td_norm, cutoff=cutoff)
         
-        for neighbor in G.neighbors(node):
+        for neighbor in list(G.neighbors(node)):
             direct_edge = G[node][neighbor]
 
             if shortest_distances[neighbor] < direct_edge[weight]:
@@ -211,10 +211,10 @@ def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
         total_nodes = G.number_of_nodes()
         total_nodes_checked = 0
     
-    for node in G.nodes():
+    for node in list(G.nodes()):
         shortest_distances = single_source_neighbors_dijkstra_path_length(G, source=node, weight=weight, td_norm=td_norm, cutoff=cutoff)
 
-        for neighbor in G.neighbors(node):
+        for neighbor in list(G.neighbors(node)):
             direct_edge = G[node][neighbor]
 
             if shortest_distances[neighbor] < direct_edge[weight]:
@@ -268,7 +268,7 @@ def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm:
     """
     
     G = D.copy()
-    DC = distance_closure(G, geometry=geometry, weight=weight, td_norm=td_norm, existing_edges_only=True, self_loops=self_loops, verbose=verbose)
+    DC = distance_closure(G, geometry=geometry, weight=weight, existing_edges_only=True, self_loops=self_loops, verbose=verbose)
 
     internal_label = f"is_{geometry}"
     triangular_edges = [(source, target) for source, target in DC.edges() if DC[source][target][internal_label]]
@@ -347,7 +347,7 @@ def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distorti
     return G
 
 
-def _approximate_backbone(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distortion: bool, self_loops: bool, cutoff: int) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _from_approx(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distortion: bool, self_loops: bool, cutoff: int) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Backbone computation implementing a heuristic algorithm based on "Kalavri-Simas-Logothetis (KSL), 2016, Proceedings of the VLDB Endowment, Volume 9, Issue 9". 
 
@@ -576,7 +576,7 @@ _BACKBONE_ALGORITHMS = {
     "ttlp": _from_ttlp,
     "closure": _from_closure,
     "ksl": _from_ksl,
-    "approx": _approximate_backbone
+    "approx": _from_approx
 }
 
 _GEOMETRY = {

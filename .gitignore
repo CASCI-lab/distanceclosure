@@ -2,6 +2,7 @@
 .DS_Store
 distanceclosure/notest.py
 .local/*
+.venv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

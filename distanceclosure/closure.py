@@ -107,10 +107,6 @@ def _closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm: Call
     edges_to_add = []
 
     for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, td_norm=td_norm, cutoff=cutoff):
-        if verbose:
-            total_progress = total_nodes_checked / total_nodes
-            print(f"Distance Closure : dijkstra : {geometry} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
-            
         for v, length in lengths.items():
             if (u, v) in edges_seen or u == v:
                 continue
@@ -125,7 +121,12 @@ def _closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm: Call
                 else:
                     G[u][v][distance_label] = length
                     G[u][v][geometry_label] = True if (length == G[u][v][weight]) else False
+        
+        if verbose:
             total_nodes_checked += 1
+            total_progress = total_nodes_checked / total_nodes
+
+            print(f"Distance Closure : dijkstra : {geometry} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
 
     if self_loops:
         for u in G.nodes():
