@@ -22,35 +22,40 @@ __all__ = [
     "distance_closure"
 ]
 
-def distance_closure(D: nx.Graph | nx.DiGraph, weight='weight', geometry='metric', existing_edges_only=False, self_loops=False, verbose=False) -> nx.Graph | nx.DiGraph: 
+
+def distance_closure(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry: str = "metric", existing_edges_only: bool = True, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph: 
     """
-    Compute the distance closure of a weighted graph.
+    Compute the distance closure of either a directed or an undirected weighted graph.
 
     Parameters
     ----------
-    D : nx.Graph or nx.DiGraph
-        Directed or undirected distance graph.
+    D : Directed or undirected NetworkX graph
+        A directed or undirected weighted distance graph.
     weight : str, optional
-        Edge attribute containing distance values. Default is ``"weight"``.
+        Edge attribute containing distance values. ``weight="weight"`` by default.
     geometry : {"metric", "ultrametric"}, optional
-        Type of distance closure to compute. Default is ``"metric"``.
+        Distance metric used to compute the closure. "metric" uses sum and "ultrametric" uses max. ``kind="metric"`` by default.
     existing_edges_only : bool, optional
-        If False, add closure edges between reachable non-adjacent nodes.
+        Whether to add closure edges between reachable non-adjacent nodes. ``existing_edges_only=True`` by default.
     self_loops : bool, optional
-        If True, compute the distance closure considering self-loops.
+        Whether to remove semi-triangular self-loops.``self_loops=False`` by default.
     verbose : bool, optional
-        If True, print progress information during computation.
-        Default is ``False``.
+        Whether to display closure computation progress. ``verbose=False`` by default.
 
     Returns
     -------
     nx.Graph or nx.DiGraph
-        Copy of the input graph with additional two additional edge attributes.
+        Copy of the input directed or undirected weighted graph with two additional edge attributes:
+        ``metric_distance`` and ``is_metric``, or ``ultrametric_distance``
+        and ``is_ultrametric``, depending on the value of ``geometry``.
+
+        Edges added due to ``existing_edges_only=False`` receive only the ``metric_distance`` 
+        or ``ultrametric_distance`` attribute.  
     
     Raises
     ------
     ValueError
-        If ``kind`` is invalid.
+        If ``geometry`` is not a valid key in ``_GEOMETRY``.
     """
 
     try:
@@ -58,43 +63,41 @@ def distance_closure(D: nx.Graph | nx.DiGraph, weight='weight', geometry='metric
     except KeyError:
         raise ValueError(f"Invalid input. Valid arguments are: {list(_GEOMETRY)}")
 
-    return _closure(D, geometry=geometry, td_norm=chosen_td_norm, weight=weight, existing_edges_only=existing_edges_only, self_loops=self_loops, verbose=verbose)
+    return _closure(D, geometry=geometry, td_norm=chosen_td_norm, weight=weight, existing_edges_only=existing_edges_only, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
 
-def _closure(D: nx.Graph | nx.DiGraph, geometry: str, td_norm: Callable, weight: str, existing_edges_only: bool, self_loops: bool, verbose: bool) -> nx.Graph | nx.DiGraph:
+def _closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm: Callable, existing_edges_only: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph:
     """
-    Compute the distance closure using all-pairs shortest paths (APSP)
-    with two different shortest path measures on a weighted distance graph.
+    Compute the distance closure using all-pairs shortest paths (APSP).
 
     Parameters
     ----------
-    D : nx.Graph or nx.DiGraph
-        Directed or undirected distance graph.
-    kind : {"metric", "ultrametric"}
-        Type of distance closure to compute.
-    disjunction : {sum, max}
-        Function used to measure distance. ``sum`` 
-        for metric and ``max`` for ultrametric.
+    D : Directed or undirected NetworkX graph
+        A directed or undirected weighted distance graph.
     weight : str
         Edge attribute containing distance values.
-    existing_edges_only : bool, optional
-        If False, add closure edges between reachable non-adjacent nodes.
-    self_loops : bool, optional
-        If True, compute the distance closure considering self-loops.
-    verbose : bool, optional
-        If True, print progress information during computation.
+    td_norm : Callable
+        Function used to measure path distance.
+    distortion : bool
+        Whether to compute edge distortion for edges not in the closure.
+    self_loops : bool
+        Whether to remove semi-triangular self-loops.
+    cutoff : int
+        Restrict the maximum number of edges a shortest path can contain.
+    verbose : bool
+        Whether to display closure computation progress.
 
     Returns
     -------
     nx.Graph or nx.DiGraph
-        Copy of the input graph with two additional edge attributes:
+        Copy of the input directed or undirected weighted graph with two additional edge attributes:
         ``metric_distance`` and ``is_metric``, or ``ultrametric_distance``
-        and ``is_ultrametric``, depending on the value of ``kind``.
+        and ``is_ultrametric``, depending on the value of ``geometry``.
 
         Edges added due to ``existing_edges_only=False`` receive only the ``metric_distance`` 
-        or ``ultrametric_distance`` attribute.
-        
+        or ``ultrametric_distance`` attribute.      
     """
+    
     if verbose:
         total_nodes = G.number_of_nodes()
         total_nodes_checked = 1
@@ -103,7 +106,7 @@ def _closure(D: nx.Graph | nx.DiGraph, geometry: str, td_norm: Callable, weight:
     edges_seen = set()
     edges_to_add = []
 
-    for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, disjunction=td_norm):
+    for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, td_norm=td_norm, cutoff=cutoff):
         if verbose:
             total_progress = total_nodes_checked / total_nodes
             print(f"Distance Closure : dijkstra : {geometry} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")

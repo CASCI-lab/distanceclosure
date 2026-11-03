@@ -18,7 +18,6 @@ from scipy.spatial.distance import cdist, squareform, jaccard
 from itertools import combinations
 import warnings
 
-__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>'])
 __metrics__ = [
     'jaccard', 'scipy',  # Numeric Jaccard (scipy.spatial.distance)
     'jaccard_binary', 'jb',  # Binary Jaccard Coefficient
@@ -26,11 +25,13 @@ __metrics__ = [
     'jaccard_weighted', 'weighted_jaccard', 'wj'  # Weighted Jaccard
 ]
 
+
 __all__ = [
     "pairwise_proximity",
     "prox2dist",
     "dist2prox"
 ]
+
 
 def prox2dist(p):
     """Transforms a non-negative ``[0,1]`` proximity to distance in the ``[0,inf]`` interval:

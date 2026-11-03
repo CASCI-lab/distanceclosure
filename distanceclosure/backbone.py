@@ -3,7 +3,7 @@
 Distance Backbone
 =================
 
-Compute the distance backbones of both directed and undirected weighted graphs.
+Compute the distance backbone of both directed and undirected weighted graphs.
 
 Authors
 -------
@@ -30,38 +30,38 @@ __all__ = [
 
 def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry: str = "metric", algorithm: str = "stlp", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
-    Compute the distance backbone of a weighted graph.
+    Compute the distance backbone of either a directed or an undirected weighted graph.
 
     Parameters
     ----------
     D : Directed or undirected NetworkX graph
-        A weighted distance graph
+        A directed or undirected weighted distance graph.
     weight : str, optional
-        Edge property containing distance values, ``weight="weight"`` by default.
+        Edge attribute containing distance values. ``weight="weight"`` by default.
     geometry : {"metric", "ultrametric"}, optional
-        Distance metric used to compute the backbone. "metric" uses sum and "ultrametric" uses max, ``kind="metric"`` by default.
-    algorithm : {"stlp", "ttlp", "closure", "ksl", "approximate"}, optional
-        Algorithm used to compute the backbone, ``algorithm="stlp"`` by default.
+        Distance metric used to compute the backbone. "metric" uses sum and "ultrametric" uses max. ``kind="metric"`` by default.
+    algorithm : {"stlp", "ttlp", "closure", "ksl", "approx"}, optional
+        Algorithm used to compute the backbone. ``algorithm="stlp"`` by default.
     distortion : bool, optional
-        Whether to compute edge distortion from edges not in backbone, ``distortion=False`` by default.
+        Whether to compute edge distortion for edges not in the backbone. If True, returns a dictionary of edge distortions. ``distortion=False`` by default.
     self_loops : bool, optional
-        If the distance graph has nodes with self distance greater than zero,``self_loops=False`` by default. 
+        Whether to remove semi-triangular self-loops.``self_loops=False`` by default. 
     cutoff : int, optional
-        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, ``cutoff=None`` by default.
+        Restrict the maximum number of edges a shortest path can contain. If None, compute the backbone with no restriction. ``cutoff=None`` by default.
     verbose : bool, optional
-        Whether to display progress information, ``verbose=False`` by default.
+        Whether to display backbone computation progress. ``verbose=False`` by default.
 
     Returns
     -------
     nx.Graph or nx.DiGraph
-        The distance backbone.
-    dict
-        Edge distortions, returned with the backbone when ``distortion=True``.
+        The distance backbone of either a directed or an undirected weighted graph.
+    tuple of (nx.Graph or nx.DiGraph, dict)
+        Distortions of edges not in the backbone, returned with the backbone when ``distortion=True``.
 
     Raises
     ------
     KeyError 
-        If ``kind`` is not a valid key in ``_KINDS`` or ``algorithm`` is not a valid key in ``_BACKBONE_ALGORITHMS``.
+        If ``geometry`` is not a valid key in ``_GEOMETRY`` or ``algorithm`` is not a valid key in ``_BACKBONE_ALGORITHMS``.
     """
     
     try:
@@ -82,7 +82,7 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry
 
 def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
-    Compute the metric backbone of a weighted graph.
+    Compute the metric backbone of either a directed or an undirected weighted graph.
 
     This is a wrapper for :func:`distance_backbone`
     where ``geometry="metric"`` and ``algorithm="stlp"``.
@@ -93,9 +93,9 @@ def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion
 
 def ultrametric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
-    Compute the ultrametric backbone of a weighted graph.
+    Compute the ultrametric backbone of either a directed or an undirected weighted graph.
 
-    This is a wrapper for :[weight]func:`distance_backbone`
+    This is a wrapper for :func:`distance_backbone`
     where ``kind="ultrametric"`` and ``algorithm="stlp"``.
     """
 
@@ -114,26 +114,26 @@ def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
     Parameters
     ----------
     D : Directed or undirected NetworkX graph
-        A weighted distance graph.
+        A directed or undirected weighted distance graph.
     weight : str
-        Edge property containing distance values.
+        Edge attribute containing distance values.
     td_norm : Callable
         Function used to measure path distance.
     distortion : bool
-        Whether to compute and return the edge distortions of edges not in the backbone.
+        Whether to compute edge distortion for edges not in the backbone.
     self_loops : bool
-        Whether to remove self-loops that have a shorter path back to the same node.
+        Whether to remove semi-triangular self-loops.
     cutoff : int
-        Maximum number of connections to be searched per path.
+        Restrict the maximum number of edges a shortest path can contain.
     verbose : bool
-        Whether to display computation progress.
+        Whether to display backbone computation progress.
 
     Returns
     -------
     nx.Graph or nx.DiGraph
-        The distance backbone.
+        The distance backbone of either a directed or an undirected weighted graph.
     tuple of (nx.Graph or nx.DiGraph, dict)
-        Edge distortions, returned with the backbone when ``distortion=True``.
+        Distortions of edges not in the backbone, returned with the backbone when ``distortion=True``.
     """
         
     G = D.copy()
@@ -183,26 +183,26 @@ def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
     Parameters
     ----------
     D : Directed or undirected NetworkX graph
-        A weighted distance graph.
+        A directed or undirected weighted distance graph.
     weight : str
-        Edge property containing distance values.
+        Edge attribute containing distance values.
     td_norm : Callable
         Function used to measure path distance.
     distortion : bool
-        Whether to compute and return the edge distortions of edges not in the backbone.
+        Whether to compute edge distortion for edges not in the backbone.
     self_loops : bool
-        Whether to remove self-loops that have a shorter path back to the same node.
+        Whether to remove semi-triangular self-loops.
     cutoff : int
-        Maximum number of connections to be searched per path.
+        Restrict the maximum number of edges a shortest path can contain.
     verbose : bool
-        Whether to display computation progress.
+        Whether to display backbone computation progress.
 
     Returns
     -------
     nx.Graph or nx.DiGraph
-        The distance backbone.
+        The distance backbone of either a directed or an undirected weighted graph.
     tuple of (nx.Graph or nx.DiGraph, dict)
-        Edge distortions, returned with the backbone when ``distortion=True``.
+        Distortions of edges not in the backbone, returned with the backbone when ``distortion=True``.
     """
     
     G = D.copy()
@@ -244,27 +244,29 @@ def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm:
 
     Parameters
     ----------
-    D : NetworkX graph
-        The Distance graph
-    weight : str, optional
-        Edge property containing distance values, by default 'weight'
-    geometry : str, optional
-        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
-    distortion : bool, optional
-        Whether to compute edge distortion from edges not in backbone, by default False
-    self_loops : bool, optional
-        If the distance graph has nodes with self distance greater than zero, by default False
-    cutoff : int, optional
-        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
-    verbose : bool, optional
-        Prints statements as it computes, by default False
+    D : Directed or undirected NetworkX graph
+        A directed or undirected weighted distance graph.
+    weight : str
+        Edge attribute containing distance values.
+    td_norm : Callable
+        Function used to measure path distance.
+    distortion : bool
+        Whether to compute edge distortion for edges not in the backbone.
+    self_loops : bool
+        Whether to remove semi-triangular self-loops.
+    cutoff : int
+        Restrict the maximum number of edges a shortest path can contain.
+    verbose : bool
+        Whether to display backbone computation progress.
 
     Returns
     -------
-    NetworkX graph
-        The backbone subgraph.
-
+    nx.Graph or nx.DiGraph
+        The distance backbone of either a directed or an undirected weighted graph.
+    tuple of (nx.Graph or nx.DiGraph, dict)
+        Distortions of edges not in the backbone, returned with the backbone when ``distortion=True``.
     """
+    
     G = D.copy()
     DC = distance_closure(G, geometry=geometry, weight=weight, td_norm=td_norm, existing_edges_only=True, self_loops=self_loops, verbose=verbose)
 
@@ -286,30 +288,26 @@ def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distorti
     Parameters
     ----------
     D : Directed or undirected NetworkX graph
-        The weighted distance graph
-    weight : str, optional
-        Edge property containing distance values, by default 'weight'
-    kind : str, optional
-        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
-    distortion : bool, optional
-        Whether to compute edge distortion from edges not in backbone, by default False
-    self_loops : bool, optional
-        If the distance graph has nodes with self distance greater than zero, by default False
-    cutoff : int, optional
-        Maximum number of connections in the path. If None, compute the entire closure as is the cutoff is the number of nodes, by default None
-    approx : bool, optional
-        Approximates the backbone
+        A directed or undirected weighted distance graph.
+    weight : str
+        Edge attribute containing distance values.
+    td_norm : Callable
+        Function used to measure path distance.
+    distortion : bool
+        Whether to compute edge distortion for edges not in the backbone.
+    self_loops : bool
+        Whether to remove semi-triangular self-loops.
+    cutoff : int
+        Restrict the maximum number of edges a shortest path can contain.
+    verbose : bool
+        Whether to display backbone computation progress.
 
     Returns
     -------
-    Directed or undirected NetworkX graph
-        The backbone subgraph
-
-    Raises
-    ------
-    NotImplementedError
-        Self-loop closure and finite step (cutoff) not implemented yet
-
+    nx.Graph or nx.DiGraph
+        The distance backbone of either a directed or an undirected weighted graph.
+    tuple of (nx.Graph or nx.DiGraph, dict)
+        Distortions of edges not in the backbone, returned with the backbone when ``distortion=True``.
     """
 
     G = D.copy()
@@ -350,6 +348,34 @@ def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distorti
 
 
 def _approximate_backbone(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distortion: bool, self_loops: bool, cutoff: int) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+    """
+    Backbone computation implementing a heuristic algorithm based on "Kalavri-Simas-Logothetis (KSL), 2016, Proceedings of the VLDB Endowment, Volume 9, Issue 9". 
+
+    Parameters
+    ----------
+    D : Directed or undirected NetworkX graph
+        A directed or undirected weighted distance graph.
+    weight : str
+        Edge attribute containing distance values.
+    td_norm : Callable
+        Function used to measure path distance.
+    distortion : bool
+        Whether to compute edge distortion for edges not in the backbone.
+    self_loops : bool
+        Whether to remove semi-triangular self-loops.
+    cutoff : int
+        Restrict the maximum number of edges a shortest path can contain.
+    verbose : bool
+        Whether to display backbone computation progress.
+
+    Returns
+    -------
+    nx.Graph or nx.DiGraph
+        The distance backbone of either a directed or an undirected weighted graph.
+    tuple of (nx.Graph or nx.DiGraph, dict)
+        Distortions of edges not in the backbone, returned with the backbone when ``distortion=True``.
+    """
+    
     G = D.copy()
 
     # Algorithm 1, page 676
@@ -365,70 +391,103 @@ def _approximate_backbone(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callab
     return G
 
 
-def _drastic_disjunction(iterable: list[float]) -> float:
-    iterable.sort()
-    if iterable[0] == 0.0:
-        return iterable[1]
-    else:
-        return np.inf   
-
-
-def _remove_semi_triangular_self_loops(G: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable) -> nx.Graph | nx.DiGraph:
+def _remove_semi_triangular_self_loops(D: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str) -> nx.Graph | nx.DiGraph:
     """
-    Remove self-loops that are semi-triangular, i.e., there exists a neighbor k of u such that the path u -> k -> u is shorter than the self-loop u -> u.
+    Remove semi-triangular self-loops.
 
     Parameters
     ----------
-    G : NetworkX graph
-        The graph to process.
-    weight : str
-        Edge property containing distance values, by default 'weight'
+    D : Directed or undirected NetworkX graph
+        A directed or undirected weighted distance graph.
     td_norm : Callable
-        Distance accumulation kind. Either metric (sum) or ultrametric (max), by default 'metric'
+        Function used to measure path distance.
+    weight : str
+        Edge attribute containing distance values.
+    
+    Returns
+    -------
+    nx.Graph or nx.DiGraph
+        Either a directed or an undirected weighted graph with semi-triangular self-loops removed.
     """
 
     edges_to_remove = []
-    for node in nx.nodes_with_selfloops(G):
-        self_loop = G[node][node]
+    for node in nx.nodes_with_selfloops(D):
+        self_loop = D[node][node]
         
-        for neighbor in G.neighbors(node):
+        for neighbor in D.neighbors(node):
             if neighbor != node:
-                path_length = single_source_neighbors_dijkstra_path_length(G, source=neighbor, weight=weight, td_norm=td_norm)
-                direct_path = G[node][neighbor]
+                path_length = single_source_neighbors_dijkstra_path_length(D, source=neighbor, weight=weight, td_norm=td_norm)
+                direct_path = D[node][neighbor]
                 alternative_loop_length = td_norm([ direct_path[weight], path_length[node] ])
                 
                 if alternative_loop_length < self_loop[weight]:
                     edges_to_remove.append((node, node))
                     break
                 
-    G.remove_edges_from(edges_to_remove)
+    D.remove_edges_from(edges_to_remove)
     
-    return G
+    return D
 
-def _remove_local_semi_triangular_edges(G: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str = 'weight') -> nx.Graph | nx.DiGraph:
-    for node in G.nodes():
-        neighbors = list(G.neighbors(node))
+def _remove_local_semi_triangular_edges(D: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str) -> nx.Graph | nx.DiGraph:
+    """
+    Remove local semi-triangular edges. Algorithm 1 "Kalavri-Simas-Logothetis (KSL), 2016, Proceedings of the VLDB Endowment, Volume 9, Issue 9".
+
+    Parameters
+    ----------
+    D : Directed or undirected NetworkX graph
+        A directed or undirected weighted distance graph.
+    td_norm : Callable
+        Function used to measure path distance.
+    weight : str
+        Edge attribute containing distance values.
+
+    Returns
+    -------
+    nx.Graph or nx.DiGraph
+        Either a directed or an undirected weighted graph with local semi-triangular edges removed.
+    """
+    
+    for node in D.nodes():
+        neighbors = list(D.neighbors(node))
         triangles_to_check = product(neighbors, neighbors)
         
         for neighbor_1, neighbor_2 in triangles_to_check:
-            if G.has_edge(node, neighbor_1) and G.has_edge(neighbor_2, neighbor_1) and G.has_edge(node, neighbor_2):
-                direct_edge_1 = G[node][neighbor_1][weight]
-                direct_edge_2 = G[node][neighbor_2][weight]
-                connecting_edge = G[neighbor_2][neighbor_1][weight]
+            if D.has_edge(node, neighbor_1) and D.has_edge(neighbor_2, neighbor_1) and D.has_edge(node, neighbor_2):
+                direct_edge_1 = D[node][neighbor_1][weight]
+                direct_edge_2 = D[node][neighbor_2][weight]
+                connecting_edge = D[neighbor_2][neighbor_1][weight]
 
                 if td_norm([ connecting_edge, direct_edge_2 ]) < direct_edge_1:
-                    G.remove_edge(node, neighbor_1)
-    return G
+                    D.remove_edge(node, neighbor_1)
+    return D
 
 
-def _identify_local_triangular_edges(G: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str = 'weight') -> nx.Graph | nx.DiGraph:
+def _identify_local_triangular_edges(D: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str) -> nx.Graph | nx.DiGraph:
+    """
+    Identify local triangular edges. Algorithm 2 of "Kalavri-Simas-Logothetis (KSL), 2016, Proceedings of the VLDB Endowment, Volume 9, Issue 9" 
+
+    Parameters
+    ----------
+    D : Directed or undirected NetworkX graph
+        A directed or undirected weighted distance graph.
+    td_norm : Callable
+        Function used to measure path distance.
+    weight : str
+        Edge attribute containing distance values.
+
+    Returns
+    -------
+    nx.Graph or nx.DiGraph
+        Either a directed or an undirected weighted graph with local semi-triangular edges removed.
+    """
+    
     U = {}
-    for node in G.nodes():
-        neighbors = [(node, target, data[weight]) for target, data in G[node].items()]
+    for node in D.nodes():
+        neighbors = [(node, target, data[weight]) for target, data in D[node].items()]
         U[node] = sorted(neighbors, key=lambda item: item[2])
 
     triangular_edges = set()
-    for node in G.nodes():
+    for node in D.nodes():
         if not U[node]:
             continue
 
@@ -441,8 +500,8 @@ def _identify_local_triangular_edges(G: nx.Graph | nx.DiGraph, td_norm: Callable
         while U[node]:
             e = U[node].pop(0)
             for _, target, _ in triangular_edges:
-                if G.has_edge(node, target) and U[target]:
-                    w_x = td_norm([ G[node][target][weight], U[target][0][2] ])
+                if D.has_edge(node, target) and U[target]:
+                    w_x = td_norm([ D[node][target][weight], U[target][0][2] ])
                     weights_for_comparison.add(w_x)
             
             for w in weights_for_comparison:
@@ -459,26 +518,27 @@ def _identify_local_triangular_edges(G: nx.Graph | nx.DiGraph, td_norm: Callable
     return triangular_edges
 
 
-def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str, self_loops: bool = False) -> dict:
+def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str, self_loops: bool) -> dict:
     """
     Compute distortions of edges not in backbone.
 
     Parameters
     ----------
-    D : Directed or undirected NetworkX distance graph
-        The weighted distance graph
-    B : Directed or undirected NetworkX backbone graph
-        The weighted backbone subgraph
-    weight : str, optional
-        Edge property containing distance values, by default 'weight'
-    disjunction : callable, optional
-        The disjunction function to use for distance accumulation, by default sum
-    self_loops : bool, optional
-        Whether to consider self-loops in the computation, by default False
+    D : Directed or undirected NetworkX graph
+        A directed or undirected weighted distance graph.
+    B : Directed or undirected NetworkX graph
+        A directed or undirected weighted distance graph.
+    td_norm: Callable
+        Function used to measure path distance.
+    weight : str
+        Edge attribute containing distance values.
+    self_loops : bool
+        Whether to remove semi-triangular self-loops.
 
     Returns
     -------
-    Dictionary keyed by edge with its distortion value.
+    dict
+        Distortions of edges not in the backbone.
     
     """
     G = D.copy()
@@ -510,16 +570,16 @@ def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_
     
     return distortions   
 
+
 _BACKBONE_ALGORITHMS = {
     "stlp": _from_stlp,
     "ttlp": _from_ttlp,
     "closure": _from_closure,
     "ksl": _from_ksl,
-    "approximate": _approximate_backbone
+    "approx": _approximate_backbone
 }
 
 _GEOMETRY = {
     "metric": sum,
     "ultrametric": max,
-    "drastic": _drastic_disjunction
 }

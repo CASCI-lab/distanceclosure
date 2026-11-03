@@ -17,10 +17,7 @@ from itertools import count
 from collections.abc import Hashable, Callable
 import networkx as nx
 from networkx.algorithms.shortest_paths.weighted import _weight_function
-__name__ = 'distanceclosure'
-__author__ = """\n""".join(['Rion Brattig Correia <rionbr@gmail.com>', 
-                            'Felipe Xavier Costa <fcosta@binghamton.com>', 
-                            'Robert Palermo <rpalermo@binghamton.edu>'])
+
 
 __all__ = [
     "all_pairs_dijkstra_path_length",
@@ -29,7 +26,8 @@ __all__ = [
     "single_source_neighbors_dijkstra_path_length"
 ]
 
-def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum, cutoff=None):
+
+def all_pairs_dijkstra_path_length(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, cutoff: int):
     """Computes shortest path lengths between all nodes in a weighted graph.
 
     Parameters
@@ -86,11 +84,11 @@ def all_pairs_dijkstra_path_length(G, weight="weight", disjunction=sum, cutoff=N
 
     The dictionary returned only has keys for reachable node pairs.
     """
-    for n in G:
-        yield (n, single_source_dijkstra_path_length(G, source=n, weight=weight, disjunction=disjunction, cutoff=cutoff))
+    for node in D:
+        yield (node, single_source_dijkstra_path_length(D, source=node, weight=weight, td_norm=td_norm, cutoff=cutoff))
 
 
-def single_source_dijkstra_path_length(G, source, weight="weight", disjunction=sum, cutoff=None):
+def single_source_dijkstra_path_length(D: nx.Graph | nx.DiGraph, source: Hashable, weight: str, td_norm: Callable, cutoff: int):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted paths
 
     Parameters
@@ -134,11 +132,11 @@ def single_source_dijkstra_path_length(G, source, weight="weight", disjunction=s
     as arguments. No need to explicitly return paths.
 
     """
-    if source not in G:
+    if source not in D:
         raise nx.NodeNotFound(f"Source {source} not in G")
 
-    G_succ = G._adj #G._succ if G.is_directed() else G._adj
-    weight_function = _weight_function(G, weight)
+    D_succ = D._adj 
+    weight_function = _weight_function(D, weight)
 
     if cutoff is not None:
         paths = {source: [source]}
@@ -161,11 +159,11 @@ def single_source_dijkstra_path_length(G, source, weight="weight", disjunction=s
         if v in dist:
             continue  
         dist[v] = d
-        for u, e in G_succ[v].items():
+        for u, e in D_succ[v].items():
             cost = weight_function(v, u, e)
             if cost is None:
                 continue
-            vu_dist = disjunction([dist[v], cost])
+            vu_dist = td_norm([dist[v], cost])
             if u in dist:
                 u_dist = dist[u]
                 if vu_dist < u_dist:
@@ -180,7 +178,7 @@ def single_source_dijkstra_path_length(G, source, weight="weight", disjunction=s
                 
     return dist
 
-def single_source_target_dijkstra_path(G: nx.Graph | nx.DiGraph, source: Hashable, target: Hashable, weight: str = "weight", td_norm: Callable = sum, cutoff: int = None):
+def single_source_target_dijkstra_path(D: nx.Graph | nx.DiGraph, source: Hashable, target: Hashable, weight: str, td_norm: Callable, cutoff: int):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted path(s) between two nodes in a graph.
 
     Parameters
@@ -225,14 +223,14 @@ def single_source_target_dijkstra_path(G: nx.Graph | nx.DiGraph, source: Hashabl
     as arguments. No need to explicitly return paths.
 
     """
-    if source not in G:
+    if source not in D:
         raise nx.NodeNotFound(f"Source {source} not in G")
     
-    G_succ = G._adj 
-    weight_function = _weight_function(G, weight)
+    D_succ = D._adj 
+    weight_function = _weight_function(D, weight)
 
     if cutoff is None:
-        cutoff = len(G.nodes)+1
+        cutoff = len(D.nodes)+1
     paths = {source: [source]}
 
     push = heappush
@@ -248,11 +246,11 @@ def single_source_target_dijkstra_path(G: nx.Graph | nx.DiGraph, source: Hashabl
     while fringe:
         (d, _, v) = pop(fringe)
         if v in dist:
-            continue  # already searched this node.
+            continue  
         dist[v] = d
         if v == target:
             break
-        for u, e in G_succ[v].items():
+        for u, e in D_succ[v].items():
             cost = weight_function(v, u, e)
             if cost is None:
                 continue
@@ -273,13 +271,13 @@ def single_source_target_dijkstra_path(G: nx.Graph | nx.DiGraph, source: Hashabl
     return paths[target]
 
 
-def single_source_neighbors_dijkstra_path_length(G: nx.Graph | nx.DiGraph, source: Hashable, weight: str = "weight", td_norm: Callable = sum, cutoff: int = None):
-    if source not in G:
+def single_source_neighbors_dijkstra_path_length(D: nx.Graph | nx.DiGraph, source: Hashable, weight: str, td_norm: Callable, cutoff: int):
+    if source not in D:
         raise nx.NodeNotFound(f"Source {source} not in G")
 
-    targets = set(G.neighbors(source))
-    G_succ = G._adj 
-    weight_function = _weight_function(G, weight)
+    targets = set(D.neighbors(source))
+    D_succ = D._adj 
+    weight_function = _weight_function(D, weight)
 
     if cutoff is not None:
         paths = {source: [source]}
@@ -304,7 +302,7 @@ def single_source_neighbors_dijkstra_path_length(G: nx.Graph | nx.DiGraph, sourc
         targets.discard(v)
         if not targets:
             break
-        for u, e in G_succ[v].items():
+        for u, e in D_succ[v].items():
             cost = weight_function(v, u, e)
             if cost is None:
                 continue
