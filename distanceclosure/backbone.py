@@ -18,7 +18,7 @@ from distanceclosure.dijkstra import single_source_target_dijkstra_path, single_
 from distanceclosure.closure import distance_closure
 
 from itertools import product
-from collections.abc import Callable
+from collections.abc import Callable, Hashable
 
 
 __all__ = [
@@ -167,7 +167,7 @@ def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
         G = _remove_semi_triangular_self_loops(G, weight=weight, td_norm=td_norm)
     
     if distortion:
-        distortions = _compute_distortions(D, G, weight=weight, td_norm=td_norm)
+        distortions = _compute_distortions(D, G, weight=weight, td_norm=td_norm, self_loops=self_loops)
         return G, distortions
 
     return G
@@ -518,7 +518,7 @@ def _identify_local_triangular_edges(D: nx.Graph | nx.DiGraph, td_norm: Callable
     return triangular_edges
 
 
-def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str, self_loops: bool) -> dict:
+def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str, self_loops: bool) -> dict[tuple[Hashable, Hashable], float]:
     """
     Compute distortions of edges not in backbone.
 
@@ -550,7 +550,7 @@ def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_
             self_loop = G[node][node]
             
             for neighbor in G.neighbors(node):
-                return_path_length = single_source_neighbors_dijkstra_path_length(B, source=neighbor, weight=weight, td_norm=td_norm)
+                return_path_length = single_source_neighbors_dijkstra_path_length(B, source=neighbor, weight=weight, td_norm=td_norm, cutoff=None)
                 direct_path = G[node][neighbor]
                 alternative_self_loop = td_norm([ direct_path[weight], return_path_length[node] ])
                 
@@ -561,7 +561,7 @@ def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_
 
     distortions = dict()        
     for node in G.nodes():
-        shortest_distances = single_source_neighbors_dijkstra_path_length(B, source=node, weight=weight, td_norm=td_norm)
+        shortest_distances = single_source_neighbors_dijkstra_path_length(B, source=node, weight=weight, td_norm=td_norm, cutoff=None)
         for neighbor in G.neighbors(node):
             if (neighbor == node) and self_loops:
                 distortions[(node, neighbor)] = G[node][neighbor][weight] / all_self_loops[node]

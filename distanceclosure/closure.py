@@ -98,14 +98,16 @@ def _closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm: Call
         or ``ultrametric_distance`` attribute.      
     """
     
-    if verbose:
-        total_nodes = G.number_of_nodes()
-        total_nodes_checked = 1
+    
 
     G = D.copy() 
     edges_seen = set()
     edges_to_add = []
 
+    if verbose:
+        total_nodes = G.number_of_nodes()
+        total_nodes_checked = 1
+        
     for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, td_norm=td_norm, cutoff=cutoff):
         for v, length in lengths.items():
             if (u, v) in edges_seen or u == v:
@@ -136,7 +138,10 @@ def _closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm: Call
                 length = G[u][u][weight]
 
             for k in G.neighbors(u):
-                return_path = single_source_target_dijkstra_path(G, source=k, target=u, weight=weight, disjunction=td_norm)
+                if k == u or not nx.has_path(G, k, u):
+                    continue
+                
+                return_path = single_source_target_dijkstra_path(G, source=k, target=u, weight=weight, td_norm=td_norm, cutoff=None)
                 spl = td_norm([G[u][k][weight], td_norm(G[return_path[idx-1]][return_path[idx]][weight] for idx in range(1, len(return_path)))])
                 if spl < length:
                     length = spl
