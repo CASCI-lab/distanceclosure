@@ -14,7 +14,7 @@ Robert Palermo <rpalermo@binghamton.edu>
 import numpy as np
 import networkx as nx
 
-from distanceclosure.dijkstra import single_source_target_dijkstra_path, single_source_neighbors_dijkstra_path_length
+from distanceclosure.dijkstra import single_source_target_dijkstra_path, single_source_neighbors_dijkstra_path_length, single_source_dijkstra_path_length
 from distanceclosure.closure import distance_closure
 
 from itertools import product
@@ -28,7 +28,7 @@ __all__ = [
 ]
 
 
-def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry: str = "metric", algorithm: str = "stlp", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", td_name: str = "metric", algorithm: str = "stlp", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Compute the distance backbone of either a directed or an undirected weighted graph.
 
@@ -38,8 +38,8 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry
         A directed or undirected weighted distance graph.
     weight : str, optional
         Edge attribute containing distance values. ``weight="weight"`` by default.
-    geometry : {"metric", "ultrametric"}, optional
-        Distance metric used to compute the backbone. "metric" uses sum and "ultrametric" uses max. ``kind="metric"`` by default.
+    td_name: {"metric", "ultrametric"}, optional
+        Distance metric used to compute the backbone. "metric" uses sum and "ultrametric" uses max. ``td_name="metric"`` by default.
     algorithm : {"stlp", "ttlp", "closure", "ksl", "approx"}, optional
         Algorithm used to compute the backbone. ``algorithm="stlp"`` by default.
     distortion : bool, optional
@@ -61,13 +61,13 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry
     Raises
     ------
     KeyError 
-        If ``geometry`` is not a valid key in ``_GEOMETRY`` or ``algorithm`` is not a valid key in ``_BACKBONE_ALGORITHMS``.
+        If ``td_name`` is not a valid key in ``_TD_NAMES`` or ``algorithm`` is not a valid key in ``_BACKBONE_ALGORITHMS``.
     """
     
     try:
-        chosen_td_norm = _GEOMETRY[geometry]
+        chosen_td_norm = _TD_NAMES[td_name]
     except KeyError:
-        raise ValueError(f"Invalid input. Valid arguments are: {list(_GEOMETRY)}") from None
+        raise ValueError(f"Invalid input. Valid arguments are: {list(_TD_NAMES)}") from None
 
     try:
         chosen_algorithm = _BACKBONE_ALGORITHMS[algorithm]
@@ -75,7 +75,7 @@ def distance_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry
         raise ValueError(f"Invalid input. Valid arguments are: {list(_BACKBONE_ALGORITHMS)}") from None
     
     if chosen_algorithm is _BACKBONE_ALGORITHMS["closure"]:
-        return chosen_algorithm(D, weight=weight, geometry=geometry, td_norm=chosen_td_norm, distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
+        return chosen_algorithm(D, weight=weight, td_name=td_name, td_norm=chosen_td_norm, distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
     
     return chosen_algorithm(D, weight=weight, td_norm=chosen_td_norm, distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
@@ -85,10 +85,10 @@ def metric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion
     Compute the metric backbone of either a directed or an undirected weighted graph.
 
     This is a wrapper for :func:`distance_backbone`
-    where ``geometry="metric"`` and ``algorithm="stlp"``.
+    where ``td_name="metric"`` and ``algorithm="stlp"``.
     """
 
-    return distance_backbone(D, weight=weight, algorithm="stlp", geometry="metric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
+    return distance_backbone(D, weight=weight, algorithm="stlp", td_name="metric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
 
 def ultrametric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", distortion: bool = False, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
@@ -96,14 +96,14 @@ def ultrametric_backbone(D: nx.Graph | nx.DiGraph, weight: str = "weight", disto
     Compute the ultrametric backbone of either a directed or an undirected weighted graph.
 
     This is a wrapper for :func:`distance_backbone`
-    where ``kind="ultrametric"`` and ``algorithm="stlp"``.
+    where ``td_name="ultrametric"`` and ``algorithm="stlp"``.
     """
 
-    return distance_backbone(D, weight=weight, algorithm="stlp", geometry="ultrametric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
+    return distance_backbone(D, weight=weight, algorithm="stlp", td_name="ultrametric", distortion=distortion, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
 
 # Private 
-def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable[[float, float], float], distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Compute the distance backbone using the Triangularity Tagging with Local Pruning (TTLP) algorithm.
 
@@ -117,7 +117,7 @@ def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
         A directed or undirected weighted distance graph.
     weight : str
         Edge attribute containing distance values.
-    td_norm : Callable
+    td_norm : Callable[[float, float], float]
         Function used to measure path distance.
     distortion : bool
         Whether to compute edge distortion for edges not in the backbone.
@@ -173,7 +173,7 @@ def _from_ttlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
     return G
 
 
-def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distortion: bool, self_loops: bool , cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable[[float, float], float], distortion: bool, self_loops: bool , cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Compute the distance backbone Semi-Triangular Local Pruning (STLP) algorithm.
 
@@ -186,7 +186,7 @@ def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
         A directed or undirected weighted distance graph.
     weight : str
         Edge attribute containing distance values.
-    td_norm : Callable
+    td_norm : Callable[[float, float], float]
         Function used to measure path distance.
     distortion : bool
         Whether to compute edge distortion for edges not in the backbone.
@@ -236,7 +236,7 @@ def _from_stlp(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distort
     return G
 
 
-def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, td_name: str, td_norm: Callable[[float, float], float], distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Compute the distance backbone using the closure algorithm.
 
@@ -248,7 +248,9 @@ def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm:
         A directed or undirected weighted distance graph.
     weight : str
         Edge attribute containing distance values.
-    td_norm : Callable
+    td_name: {"metric", "ultrametric"}, optional
+        Distance metric used to compute the backbone. "metric" uses sum and "ultrametric" uses max.
+    td_norm : Callable[[float, float], float]
         Function used to measure path distance.
     distortion : bool
         Whether to compute edge distortion for edges not in the backbone.
@@ -268,11 +270,12 @@ def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm:
     """
     
     G = D.copy()
-    DC = distance_closure(G, geometry=geometry, weight=weight, existing_edges_only=True, self_loops=self_loops, verbose=verbose)
+    DC = distance_closure(G, td_name=td_name, weight=weight, existing_edges_only=True, self_loops=self_loops, verbose=verbose)
 
-    internal_label = f"is_{geometry}"
+    internal_label = f"is_{td_name}"
     triangular_edges = [(source, target) for source, target in DC.edges() if DC[source][target][internal_label]]
     G = DC.edge_subgraph(triangular_edges).copy()
+    G.add_nodes_from(D.nodes(data=True)) 
     
     if distortion:
         distortions = _compute_distortions(D, G, weight=weight, td_norm=td_norm, self_loops=self_loops)
@@ -281,7 +284,7 @@ def _from_closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm:
     return G
 
 
-def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable[[float, float], float], distortion: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Backbone computation combining triangle search based on "Kalavri-Simas-Logothetis (KSL), 2016, Proceedings of the VLDB Endowment, Volume 9, Issue 9".
 
@@ -291,7 +294,7 @@ def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distorti
         A directed or undirected weighted distance graph.
     weight : str
         Edge attribute containing distance values.
-    td_norm : Callable
+    td_norm : Callable[[float, float], float]
         Function used to measure path distance.
     distortion : bool
         Whether to compute edge distortion for edges not in the backbone.
@@ -336,6 +339,7 @@ def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distorti
     
     final_edges = list(backbone) + remaining_triangular_edges
     G = G.edge_subgraph(final_edges).copy()
+    G.add_nodes_from(D.nodes(data=True))
 
     if self_loops:
         G = _remove_semi_triangular_self_loops(G, weight=weight, td_norm=td_norm)
@@ -347,7 +351,7 @@ def _from_ksl(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distorti
     return G
 
 
-def _from_approx(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, distortion: bool, self_loops: bool, cutoff: int) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
+def _from_approx(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable[[float, float], float], distortion: bool, self_loops: bool, cutoff: int) -> nx.Graph | nx.DiGraph | tuple[nx.Graph | nx.DiGraph, dict]:
     """
     Backbone computation implementing a heuristic algorithm based on "Kalavri-Simas-Logothetis (KSL), 2016, Proceedings of the VLDB Endowment, Volume 9, Issue 9". 
 
@@ -357,7 +361,7 @@ def _from_approx(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, disto
         A directed or undirected weighted distance graph.
     weight : str
         Edge attribute containing distance values.
-    td_norm : Callable
+    td_norm : Callable[[float, float], float]
         Function used to measure path distance.
     distortion : bool
         Whether to compute edge distortion for edges not in the backbone.
@@ -391,7 +395,7 @@ def _from_approx(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, disto
     return G
 
 
-def _remove_semi_triangular_self_loops(D: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str) -> nx.Graph | nx.DiGraph:
+def _remove_semi_triangular_self_loops(D: nx.Graph | nx.DiGraph, td_norm: Callable[[float, float], float], weight: str) -> nx.Graph | nx.DiGraph:
     """
     Remove semi-triangular self-loops.
 
@@ -399,7 +403,7 @@ def _remove_semi_triangular_self_loops(D: nx.Graph | nx.DiGraph, td_norm: Callab
     ----------
     D : Directed or undirected NetworkX graph
         A directed or undirected weighted distance graph.
-    td_norm : Callable
+    td_norm : Callable[[float, float], float]
         Function used to measure path distance.
     weight : str
         Edge attribute containing distance values.
@@ -428,7 +432,7 @@ def _remove_semi_triangular_self_loops(D: nx.Graph | nx.DiGraph, td_norm: Callab
     
     return D
 
-def _remove_local_semi_triangular_edges(D: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str) -> nx.Graph | nx.DiGraph:
+def _remove_local_semi_triangular_edges(D: nx.Graph | nx.DiGraph, td_norm: Callable[[float, float], float], weight: str) -> nx.Graph | nx.DiGraph:
     """
     Remove local semi-triangular edges. Algorithm 1 "Kalavri-Simas-Logothetis (KSL), 2016, Proceedings of the VLDB Endowment, Volume 9, Issue 9".
 
@@ -436,7 +440,7 @@ def _remove_local_semi_triangular_edges(D: nx.Graph | nx.DiGraph, td_norm: Calla
     ----------
     D : Directed or undirected NetworkX graph
         A directed or undirected weighted distance graph.
-    td_norm : Callable
+    td_norm : Callable[[float, float], float]
         Function used to measure path distance.
     weight : str
         Edge attribute containing distance values.
@@ -462,7 +466,7 @@ def _remove_local_semi_triangular_edges(D: nx.Graph | nx.DiGraph, td_norm: Calla
     return D
 
 
-def _identify_local_triangular_edges(D: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str) -> nx.Graph | nx.DiGraph:
+def _identify_local_triangular_edges(D: nx.Graph | nx.DiGraph, td_norm: Callable[[float, float], float], weight: str) -> nx.Graph | nx.DiGraph:
     """
     Identify local triangular edges. Algorithm 2 of "Kalavri-Simas-Logothetis (KSL), 2016, Proceedings of the VLDB Endowment, Volume 9, Issue 9" 
 
@@ -470,7 +474,7 @@ def _identify_local_triangular_edges(D: nx.Graph | nx.DiGraph, td_norm: Callable
     ----------
     D : Directed or undirected NetworkX graph
         A directed or undirected weighted distance graph.
-    td_norm : Callable
+    td_norm : Callable[[float, float], float]
         Function used to measure path distance.
     weight : str
         Edge attribute containing distance values.
@@ -518,7 +522,7 @@ def _identify_local_triangular_edges(D: nx.Graph | nx.DiGraph, td_norm: Callable
     return triangular_edges
 
 
-def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_norm: Callable, weight: str, self_loops: bool) -> dict[tuple[Hashable, Hashable], float]:
+def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_norm: Callable[[float, float], float], weight: str, self_loops: bool) -> dict[tuple[Hashable, Hashable], float]:
     """
     Compute distortions of edges not in backbone.
 
@@ -528,7 +532,7 @@ def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_
         A directed or undirected weighted distance graph.
     B : Directed or undirected NetworkX graph
         A directed or undirected weighted distance graph.
-    td_norm: Callable
+    td_norm: Callable[[float, float], float]
         Function used to measure path distance.
     weight : str
         Edge attribute containing distance values.
@@ -561,7 +565,7 @@ def _compute_distortions(D: nx.Graph | nx.DiGraph, B: nx.Graph | nx.DiGraph, td_
 
     distortions = dict()        
     for node in G.nodes():
-        shortest_distances = single_source_neighbors_dijkstra_path_length(B, source=node, weight=weight, td_norm=td_norm, cutoff=None)
+        shortest_distances = single_source_dijkstra_path_length(B, source=node, weight=weight, td_norm=td_norm, cutoff=None)
         for neighbor in G.neighbors(node):
             if (neighbor == node) and self_loops:
                 distortions[(node, neighbor)] = G[node][neighbor][weight] / all_self_loops[node]
@@ -579,7 +583,7 @@ _BACKBONE_ALGORITHMS = {
     "approx": _from_approx
 }
 
-_GEOMETRY = {
+_TD_NAMES = {
     "metric": sum,
     "ultrametric": max,
 }

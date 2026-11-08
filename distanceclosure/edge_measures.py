@@ -23,10 +23,10 @@ __all__ = [
 ]
 
 
-def edge_distortion(D: nx.Graph | nx.DiGraph, weight: str = 'weight', geometry: str = 'metric', self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph: 
-    if geometry == 'metric':
+def edge_distortion(D: nx.Graph | nx.DiGraph, weight: str = 'weight', td_name: str = 'metric', self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph: 
+    if td_name == 'metric':
         backbone, distortions = metric_backbone(D, weight=weight, distortion=True, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
-    elif geometry == 'ultrametric':
+    elif td_name == 'ultrametric':
         backbone, distortions = ultrametric_backbone(D, weight=weight, distortion=True, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
     else:
         raise ValueError("Invalid input. Choose 'metric' or 'ultrametric'.")
@@ -35,12 +35,12 @@ def edge_distortion(D: nx.Graph | nx.DiGraph, weight: str = 'weight', geometry: 
         distortions[(source, target)] = 1.0
     
     G = D.copy()
-    nx.set_edge_attributes(G, values=distortions, name=f"{geometry}_distortion")
+    nx.set_edge_attributes(G, values=distortions, name=f"{td_name}_distortion")
     
     return G 
 
 
-def below_average_ratio(D: nx.Graph | nx.DiGraph, weight: str = 'weight', geometry: str = 'metric', self_loops: bool = False, cutoff: int = None, verbose: bool = False):
+def below_average_ratio(D: nx.Graph | nx.DiGraph, weight: str = 'weight', td_name: str = 'metric', self_loops: bool = False, cutoff: int = None, verbose: bool = False):
     """
     Computes below-average ratios for each edge with infinite distance, thus not existing in the original distance graph.
     The formal definition is as follow:
@@ -67,7 +67,7 @@ def below_average_ratio(D: nx.Graph | nx.DiGraph, weight: str = 'weight', geomet
     This computation takes a while.
     """
 
-    GC = distance_closure(D, weight=weight, geometry=geometry, only_reweight=False, self_loops=False, cutoff=None, verbose=verbose)
+    GC = distance_closure(D, weight=weight, td_name=td_name, only_reweight=False, self_loops=False, cutoff=None, verbose=verbose)
 
     if GC.is_directed():
         sout = GC.out_degree(weight=weight)
@@ -81,7 +81,7 @@ def below_average_ratio(D: nx.Graph | nx.DiGraph, weight: str = 'weight', geomet
     G = nx.DiGraph()
     G.add_nodes_from(GC.nodes(data=True))
 
-    for u, v, d in GC.edges(data=f'{geometry:s}_distance'):
+    for u, v, d in GC.edges(data=f'{td_name:s}_distance'):
         if not D.has_edge(u, v):
             G.add_weighted_edge(u, v, ratio=mean_distance[u]/d)
             if not GC.is_directed():

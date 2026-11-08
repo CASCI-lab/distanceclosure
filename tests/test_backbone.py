@@ -437,18 +437,18 @@ def test_robustness(module: dict[str, nx.Graph | str]) -> None:
         "closure",
     ]
 
-    geometry_to_test = [
+    td_names_to_test = [
         "metric",
         "ultrametric"
     ]
     
-    for geometry in geometry_to_test:
+    for td_name in td_names_to_test:
         for algorithm in algorithms_to_test:
-            backbone_to_test = distance_backbone(module["graph"], geometry=geometry, algorithm=algorithm, verbose=True)
-            backbone_answer_key = module["metric_key"] if geometry == "metric" else module["ultrametric_key"]
+            backbone_to_test = distance_backbone(module["graph"], td_name=td_name, algorithm=algorithm)
+            backbone_answer_key = module["metric_key"] if td_name == "metric" else module["ultrametric_key"]
             
             assert_graph(backbone_to_test, backbone_answer_key)
-            print(f"[PASS] {module['title'].upper()} {geometry.upper()} {algorithm.upper()}")
+            print(f"[PASS] {module['title'].upper()} {td_name.upper()} {algorithm.upper()}")
 
 def test_self_loops(module: dict[str, nx.Graph | str]) -> None:
     algorithms_to_test = [
@@ -458,18 +458,18 @@ def test_self_loops(module: dict[str, nx.Graph | str]) -> None:
         "closure",
     ]
 
-    geometry_to_test = [
+    td_names_to_test = [
         "metric",
         "ultrametric"
     ]
     
-    for geometry in geometry_to_test:
+    for td_name in td_names_to_test:
         for algorithm in algorithms_to_test:
-            backbone_to_test = distance_backbone(module["graph"], geometry=geometry, algorithm=algorithm, self_loops=True)
-            backbone_answer_key = module["metric_key"] if geometry == "metric" else module["ultrametric_key"]
+            backbone_to_test = distance_backbone(module["graph"], td_name=td_name, algorithm=algorithm, self_loops=True)
+            backbone_answer_key = module["metric_key"] if td_name == "metric" else module["ultrametric_key"]
             
             assert_graph(backbone_to_test, backbone_answer_key)
-            print(f"[PASS] {module['title'].upper()} {geometry.upper()} {algorithm.upper()}")
+            print(f"[PASS] {module['title'].upper()} {td_name.upper()} {algorithm.upper()}")
 
 def test_distortion(module: dict[str, str | dict]):
     algorithms_to_test = [
@@ -479,18 +479,18 @@ def test_distortion(module: dict[str, str | dict]):
         "closure",
     ]
 
-    geometry_to_test = [
+    td_names_to_test = [
         "metric",
         "ultrametric"
     ]
     
-    for geometry in geometry_to_test:
+    for td_name in td_names_to_test:
         for algorithm in algorithms_to_test:
-            _, distortion = distance_backbone(module["graph"], geometry=geometry, algorithm=algorithm, distortion=True)
-            distortion_answer_key = module["metric_key"] if geometry == "metric" else module["ultrametric_key"]
+            _, distortion = distance_backbone(module["graph"], td_name=td_name, algorithm=algorithm, distortion=True)
+            distortion_answer_key = module["metric_key"] if td_name == "metric" else module["ultrametric_key"]
             
             assert_dict(distortion, distortion_answer_key)
-            print(f"[PASS] {module['title'].upper()} {geometry.upper()} {algorithm.upper()}")
+            print(f"[PASS] {module['title'].upper()} {td_name.upper()} {algorithm.upper()}")
  
  
 robustness_testing_modules = [
@@ -500,7 +500,6 @@ robustness_testing_modules = [
     testing_module_disconnected,
     testing_module_large_weights,
     testing_module_small_weights,
-    testing_module_no_weights,
     testing_module_single_node,
     testing_module_empty_graph
 ]

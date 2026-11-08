@@ -22,8 +22,7 @@ __all__ = [
     "distance_closure"
 ]
 
-
-def distance_closure(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry: str = "metric", existing_edges_only: bool = True, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph: 
+def distance_closure(D: nx.Graph | nx.DiGraph, weight: str = "weight", td_name: str = "metric", existing_edges_only: bool = True, self_loops: bool = False, cutoff: int = None, verbose: bool = False) -> nx.Graph | nx.DiGraph: 
     """
     Compute the distance closure of either a directed or an undirected weighted graph.
 
@@ -33,8 +32,8 @@ def distance_closure(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry:
         A directed or undirected weighted distance graph.
     weight : str, optional
         Edge attribute containing distance values. ``weight="weight"`` by default.
-    geometry : {"metric", "ultrametric"}, optional
-        Distance metric used to compute the closure. "metric" uses sum and "ultrametric" uses max. ``kind="metric"`` by default.
+    td_name : {"metric", "ultrametric"}, optional
+        Distance metric used to compute the closure. "metric" uses sum and "ultrametric" uses max. ``td_name="metric"`` by default.
     existing_edges_only : bool, optional
         Whether to add closure edges between reachable non-adjacent nodes. ``existing_edges_only=True`` by default.
     self_loops : bool, optional
@@ -47,7 +46,7 @@ def distance_closure(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry:
     nx.Graph or nx.DiGraph
         Copy of the input directed or undirected weighted graph with two additional edge attributes:
         ``metric_distance`` and ``is_metric``, or ``ultrametric_distance``
-        and ``is_ultrametric``, depending on the value of ``geometry``.
+        and ``is_ultrametric``, depending on the value of ``td_name``.
 
         Edges added due to ``existing_edges_only=False`` receive only the ``metric_distance`` 
         or ``ultrametric_distance`` attribute.  
@@ -55,18 +54,18 @@ def distance_closure(D: nx.Graph | nx.DiGraph, weight: str = "weight", geometry:
     Raises
     ------
     ValueError
-        If ``geometry`` is not a valid key in ``_GEOMETRY``.
+        If ``td_name`` is not a valid key in ``_TD_NAME``.
     """
 
     try:
-        chosen_td_norm = _GEOMETRY[geometry]
+        chosen_td_norm = _TD_NAME[td_name]
     except KeyError:
-        raise ValueError(f"Invalid input. Valid arguments are: {list(_GEOMETRY)}")
+        raise ValueError(f"Invalid input. Valid arguments are: {list(_TD_NAME)}")
 
-    return _closure(D, geometry=geometry, td_norm=chosen_td_norm, weight=weight, existing_edges_only=existing_edges_only, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
+    return _closure(D, td_name=td_name, td_norm=chosen_td_norm, weight=weight, existing_edges_only=existing_edges_only, self_loops=self_loops, cutoff=cutoff, verbose=verbose)
 
 
-def _closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm: Callable, existing_edges_only: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph:
+def _closure(D: nx.Graph | nx.DiGraph, weight: str, td_name: str, td_norm: Callable[[float, float], float], existing_edges_only: bool, self_loops: bool, cutoff: int, verbose: bool) -> nx.Graph | nx.DiGraph:
     """
     Compute the distance closure using all-pairs shortest paths (APSP).
 
@@ -76,7 +75,7 @@ def _closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm: Call
         A directed or undirected weighted distance graph.
     weight : str
         Edge attribute containing distance values.
-    td_norm : Callable
+    td_norm : Callable[[float, float], float]
         Function used to measure path distance.
     distortion : bool
         Whether to compute edge distortion for edges not in the closure.
@@ -92,13 +91,11 @@ def _closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm: Call
     nx.Graph or nx.DiGraph
         Copy of the input directed or undirected weighted graph with two additional edge attributes:
         ``metric_distance`` and ``is_metric``, or ``ultrametric_distance``
-        and ``is_ultrametric``, depending on the value of ``geometry``.
+        and ``is_ultrametric``, depending on the value of ``td_name``.
 
         Edges added due to ``existing_edges_only=False`` receive only the ``metric_distance`` 
         or ``ultrametric_distance`` attribute.      
     """
-    
-    
 
     G = D.copy() 
     edges_seen = set()
@@ -108,59 +105,59 @@ def _closure(D: nx.Graph | nx.DiGraph, weight: str, geometry: str, td_norm: Call
         total_nodes = G.number_of_nodes()
         total_nodes_checked = 1
         
-    for u, lengths in all_pairs_dijkstra_path_length(G, weight=weight, td_norm=td_norm, cutoff=cutoff):
-        for v, length in lengths.items():
-            if (u, v) in edges_seen or u == v:
+    for source, lengths in all_pairs_dijkstra_path_length(G, weight=weight, td_norm=td_norm, cutoff=cutoff):
+        for target, length in lengths.items():
+            if (source, target) in edges_seen or source == target:
                 continue
             else:
-                edges_seen.add((u, v))
-                distance_label = f"{geometry}_distance"
-                geometry_label = f"is_{geometry}"
+                edges_seen.add((source, target))
+                distance_label = f"{td_name}_distance"
+                geometry_label = f"is_{td_name}"
 
-                if not G.has_edge(u, v):
+                if not G.has_edge(source, target):
                     if not existing_edges_only:
-                        edges_to_add.append((u, v, {weight: np.inf, distance_label: length}))
+                        edges_to_add.append((source, target, {weight: np.inf, distance_label: length}))
                 else:
-                    G[u][v][distance_label] = length
-                    G[u][v][geometry_label] = True if (length == G[u][v][weight]) else False
+                    G[source][target][distance_label] = length
+                    G[source][target][geometry_label] = True if (length == G[source][target][weight]) else False
         
         if verbose:
             total_nodes_checked += 1
             total_progress = total_nodes_checked / total_nodes
 
-            print(f"Distance Closure : dijkstra : {geometry} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
+            print(f"Distance Closure : dijkstra : {td_name} : {total_nodes_checked} of {total_nodes} ({total_progress:.2%})")
 
     if self_loops:
-        for u in G.nodes():
-            if not G.has_edge(u, u):
+        for source in G.nodes():
+            if not G.has_edge(source, source):
                 length = np.inf
             else:
-                length = G[u][u][weight]
+                length = G[source][source][weight]
 
-            for k in G.neighbors(u):
-                if k == u or not nx.has_path(G, k, u):
+            for k in G.neighbors(source):
+                if k == source or not nx.has_path(G, k, source):
                     continue
                 
-                return_path = single_source_target_dijkstra_path(G, source=k, target=u, weight=weight, td_norm=td_norm, cutoff=None)
-                spl = td_norm([G[u][k][weight], td_norm(G[return_path[idx-1]][return_path[idx]][weight] for idx in range(1, len(return_path)))])
+                return_path = single_source_target_dijkstra_path(G, source=k, target=source, weight=weight, td_norm=td_norm, cutoff=None)
+                spl = td_norm([G[source][k][weight], td_norm(G[return_path[idx-1]][return_path[idx]][weight] for idx in range(1, len(return_path)))])
                 if spl < length:
                     length = spl
             
-            distance_label = '{kind:s}_distance'.format(kind=geometry)
-            geometry_label = 'is_{kind:s}'.format(kind=geometry)
-            if not G.has_edge(u, u):
+            distance_label = '{kind:s}_distance'.format(kind=td_name)
+            geometry_label = 'is_{kind:s}'.format(kind=td_name)
+            if not G.has_edge(source, source):
                 if not existing_edges_only:
-                    edges_to_add.append((u, u, {weight: np.inf, distance_label: length}))
+                    edges_to_add.append((source, source, {weight: np.inf, distance_label: length}))
             else:
-                G[u][u][distance_label] = length
-                G[u][u][geometry_label] = True if (length == G[u][u][weight]) else False
+                G[source][source][distance_label] = length
+                G[source][source][geometry_label] = True if (length == G[source][source][weight]) else False
     
     G.add_edges_from(edges_to_add)
 
     return G
 
 
-_GEOMETRY = {
+_TD_NAME = {
     "metric": sum,
     "ultrametric": max,
 }

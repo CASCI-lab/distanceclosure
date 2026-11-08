@@ -27,7 +27,7 @@ __all__ = [
 ]
 
 
-def all_pairs_dijkstra_path_length(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable, cutoff: int):
+def all_pairs_dijkstra_path_length(D: nx.Graph | nx.DiGraph, weight: str, td_norm: Callable[[float, float], float], cutoff: int):
     """Computes shortest path lengths between all nodes in a weighted graph.
 
     Parameters
@@ -88,7 +88,7 @@ def all_pairs_dijkstra_path_length(D: nx.Graph | nx.DiGraph, weight: str, td_nor
         yield (node, single_source_dijkstra_path_length(D, source=node, weight=weight, td_norm=td_norm, cutoff=cutoff))
 
 
-def single_source_dijkstra_path_length(D: nx.Graph | nx.DiGraph, source: Hashable, weight: str, td_norm: Callable, cutoff: int):
+def single_source_dijkstra_path_length(D: nx.Graph | nx.DiGraph, source: Hashable, weight: str, td_norm: Callable[[float, float], float], cutoff: int):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted paths
 
     Parameters
@@ -178,7 +178,7 @@ def single_source_dijkstra_path_length(D: nx.Graph | nx.DiGraph, source: Hashabl
                 
     return dist
 
-def single_source_target_dijkstra_path(D: nx.Graph | nx.DiGraph, source: Hashable, target: Hashable, weight: str, td_norm: Callable, cutoff: int):
+def single_source_target_dijkstra_path(D: nx.Graph | nx.DiGraph, source: Hashable, target: Hashable, weight: str, td_norm: Callable[[float, float], float], cutoff: int):
     """Uses (a custom) Dijkstra's algorithm to find shortest weighted path(s) between two nodes in a graph.
 
     Parameters
@@ -271,7 +271,7 @@ def single_source_target_dijkstra_path(D: nx.Graph | nx.DiGraph, source: Hashabl
     return paths[target]
 
 
-def single_source_neighbors_dijkstra_path_length(D: nx.Graph | nx.DiGraph, source: Hashable, weight: str, td_norm: Callable, cutoff: int):
+def single_source_neighbors_dijkstra_path_length(D: nx.Graph | nx.DiGraph, source: Hashable, weight: str, td_norm: Callable[[float, float], float], cutoff: int):
     if source not in D:
         raise nx.NodeNotFound(f"Source {source} not in G")
 
